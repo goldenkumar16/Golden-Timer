@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golden Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; }
+        .timer-container { background-color: #212529; border-radius: 24px; padding: 2.5rem 1.5rem; position: relative; }
+        .timer-text { font-family: 'Inter', sans-serif; font-weight: 800; color: #00d2ff; font-size: 5.5rem; line-height: 1; text-align: center; }
+        .cycle-pill { background-color: #ff9f00; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 800; font-size: 0.75rem; position: absolute; top: 16px; right: 16px; }
+        
+        .btn-grey { background-color: #adb5bd; color: white; font-weight: 700; border-radius: 16px; }
+        .btn-slate { background-color: #495057; color: white; font-weight: 700; border-radius: 12px; }
+        .btn-dark { background-color: #212529; color: white; font-weight: 800; border-radius: 16px; }
+        
+        /* ULTRA BRIGHT STEP BUTTONS */
+        .step-btn { border-radius: 20px; padding: 1.5rem 1rem; text-align: center; font-weight: 900; font-size: 0.85rem; line-height: 1.2; text-transform: uppercase; transition: all 0.2s; border: 4px solid transparent; }
+        .step-btn-inactive { background-color: #FFB300; color: #000000; box-shadow: 0 6px 0px #cc8e00; }
+        .step-btn-inactive:active { transform: translateY(3px); box-shadow: 0 3px 0px #cc8e00; }
+        .step-btn-active { background-color: #22c55e; color: white; border-color: #166534; transform: translateY(2px); box-shadow: 0 2px 0px #166534; }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="min-h-screen p-4 flex flex-col items-center">
+
+    <!-- PAGE 1: SETUP -->
+    <div id="setupPage" class="max-w-xl w-full bg-slate-50 border border-slate-200 rounded-[2rem] p-8 shadow-sm my-auto">
+        <!-- Requested Header Styling -->
+        <h1 class="text-4xl font-black text-blue-900 mb-6 text-center uppercase tracking-tight">Golden Timer</h1>
+        
+        <div class="space-y-6">
+            <div>
+                <h2 class="text-xl font-bold text-black mb-4 uppercase tracking-wide">1. Setup</h2>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-black text-black uppercase mb-1">Equipment ID <span class="lowercase font-bold">(opt)</span></label>
+                            <input type="text" id="setupEqId" class="w-full p-3 bg-white border border-slate-300 rounded-xl outline-none text-black font-semibold focus:border-black transition" placeholder="e.g. L-402">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-black uppercase mb-1">Staff ID <span class="lowercase font-bold">(opt)</span></label>
+                            <input type="text" id="setupStaffId" class="w-full p-3 bg-white border border-slate-300 rounded-xl outline-none text-black font-semibold focus:border-black transition" placeholder="e.g. OP-88">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-black uppercase mb-1">Process Title <span class="lowercase font-bold">(opt)</span></label>
+                        <input type="text" id="setupJob" class="w-full p-3 bg-white border border-slate-300 rounded-xl outline-none text-black font-semibold focus:border-black transition" placeholder="e.g. Engine Assembly Line">
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-200">
+                <label class="block text-[10px] font-black text-black uppercase mb-3">Steps Definition <span class="text-blue-600">*</span></label>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="setupStepInput" class="flex-1 p-3 bg-white border border-slate-300 rounded-xl outline-none text-black font-semibold" placeholder="Type step and press Add...">
+                    <button onclick="addStepFromSetup()" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-sm">Add</button>
+                </div>
+                <div id="setupStepsList" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+            </div>
+
+            <button onclick="goToTimerPage()" class="w-full py-4 bg-slate-800 text-white rounded-2xl font-black text-lg hover:bg-slate-900 transition shadow-lg">
+                DONE - OPEN TIMER
+            </button>
+        </div>
+    </div>
+
+    <!-- PAGE 2: TIMER -->
+    <div id="timerPage" class="max-w-[500px] w-full hidden space-y-4">
+        
+        <!-- Header Actions -->
+        <div class="flex justify-between items-center px-1">
+            <button onclick="goHome()" class="flex items-center gap-1 text-slate-500 font-bold hover:text-slate-800 transition text-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                HOME
+            </button>
+            <div id="currentDateDisplay" class="text-[10px] font-black text-slate-400 uppercase tracking-widest"></div>
+        </div>
+
+        <!-- Timer Display Header -->
+        <div class="timer-container shadow-2xl">
+            <div class="cycle-pill uppercase">Cycles: <span id="cycleCount">0</span></div>
+            <div id="mainTimer" class="timer-text">0.00</div>
+        </div>
+
+        <!-- Controls -->
+        <div class="grid grid-cols-2 gap-4">
+            <button id="pauseBtn" onclick="togglePause()" class="btn-grey py-5 flex items-center justify-center gap-2 text-lg uppercase tracking-wider">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4h3v12H5V4zm7 0h3v12h-3V4z"/></svg>
+                Pause
+            </button>
+            <button id="waitBtn" onclick="toggleWaiting()" class="btn-grey py-5 flex items-center justify-center gap-2 text-lg uppercase tracking-wider">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9V7h2v6z"/></svg>
+                Waiting
+            </button>
+        </div>
+
+        <button onclick="undoLastCycle()" class="btn-slate w-full py-5 text-lg uppercase font-black">
+            Reset Last Cycle
+        </button>
+
+        <!-- Steps Grid -->
+        <div id="stepGrid" class="grid grid-cols-2 gap-4 pt-2">
+            <!-- Buttons generated dynamically -->
+        </div>
+
+        <!-- Download -->
+        <button onclick="downloadReport()" class="btn-dark w-full py-6 text-xl uppercase tracking-widest mt-6 shadow-xl active:scale-95 transition">
+            Download Report (CSV)
+        </button>
+
+        <div id="sessionStatus" class="text-center text-[11px] font-black text-slate-400 uppercase tracking-widest py-2">
+            Waiting to Start - Click Step 1
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div id="recordModal" class="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 hidden">
+        <div class="bg-white p-12 rounded-[2.5rem] shadow-2xl text-center scale-90 transition-all duration-300" id="modalContent">
+            <div class="w-20 h-20 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h2 class="text-3xl font-black text-slate-800 uppercase" id="successMsg">Cycle Recorded!</h2>
+            <p class="text-slate-500 font-bold uppercase text-sm mt-3">Ready for next cycle</p>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 bg-red-600 text-white rounded-full shadow-2xl text-xs font-black uppercase tracking-widest hidden z-50">
+        Last Cycle Deleted
+    </div>
+
+    <script>
+        let steps = [];
+        let cycleResults = [];
+        let currentCycleData = {};
+        let config = { eqId: '', staffId: '', job: '' };
+        
+        let isRunning = false;
+        let isPaused = false;
+        let isWaiting = false;
+
+        let accumulatedStepTime = 0;
+        let lastTimestamp = 0;
+        let cycleWaitTime = 0;
+        let timerInterval = null;
+
+        const setupPage = document.getElementById('setupPage');
+        const timerPage = document.getElementById('timerPage');
+        const mainTimer = document.getElementById('mainTimer');
+        const setupStepsList = document.getElementById('setupStepsList');
+        const stepGrid = document.getElementById('stepGrid');
+        const cycleCountDisplay = document.getElementById('cycleCount');
+        const statusLabel = document.getElementById('sessionStatus');
+        const currentDateDisplay = document.getElementById('currentDateDisplay');
+        const toast = document.getElementById('toast');
+
+        function addStepFromSetup() {
+            const input = document.getElementById('setupStepInput');
+            const name = input.value.trim();
+            if (!name) return;
+            steps.push(name);
+            input.value = '';
+            renderSetupSteps();
+        }
+
+        function renderSetupSteps() {
+            setupStepsList.innerHTML = steps.map((name, idx) => `
+                <div class="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200">
+                    <span class="font-black text-blue-500 mr-2 w-6">#${idx + 1}</span>
+                    <span class="flex-1 font-bold text-slate-700 truncate text-sm">${name}</span>
+                    <button onclick="removeStep(${idx})" class="text-slate-300 hover:text-red-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                </div>
+            `).join('');
+        }
+
+        function removeStep(idx) {
+            steps.splice(idx, 1);
+            renderSetupSteps();
+        }
+
+        function goToTimerPage() {
+            config.eqId = document.getElementById('setupEqId').value.trim();
+            config.staffId = document.getElementById('setupStaffId').value.trim();
+            config.job = document.getElementById('setupJob').value.trim();
+
+            if (steps.length === 0) {
+                alert("Please add at least one process step.");
+                return;
+            }
+
+            renderStepGrid();
+            currentDateDisplay.innerText = new Date().toLocaleDateString();
+            setupPage.classList.add('hidden');
+            timerPage.classList.remove('hidden');
+        }
+
+        function goHome() {
+            if (cycleResults.length > 0) {
+                if (!confirm("Return to Setup? Data will be saved, but you can change steps or IDs.")) return;
+            }
+            stopTimer();
+            timerPage.classList.add('hidden');
+            setupPage.classList.remove('hidden');
+        }
+
+        function renderStepGrid() {
+            stepGrid.innerHTML = steps.map((name, idx) => `
+                <button id="step-btn-${idx}" onclick="recordStep(${idx})" class="step-btn step-btn-inactive shadow-md">
+                    ${idx + 1}. ${name}
+                </button>
+            `).join('');
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            lastTimestamp = Date.now();
+            timerInterval = setInterval(tick, 10);
+            isRunning = true;
+            statusLabel.innerText = "RECORDING CYCLE...";
+            statusLabel.className = "text-center text-[11px] font-black text-green-500 uppercase tracking-widest py-2";
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            isRunning = false;
+            statusLabel.innerText = "READY FOR NEXT CYCLE - CLICK STEP 1";
+            statusLabel.className = "text-center text-[11px] font-black text-slate-400 uppercase tracking-widest py-2";
+        }
+
+        function tick() {
+            if (isPaused) return;
+            const now = Date.now();
+            const delta = now - lastTimestamp;
+            lastTimestamp = now;
+
+            if (!isWaiting) {
+                accumulatedStepTime += delta;
+            } else {
+                cycleWaitTime += delta;
+            }
+            
+            mainTimer.innerText = (accumulatedStepTime / 1000).toFixed(2);
+        }
+
+        function togglePause() {
+            if (!isRunning) return;
+            isPaused = !isPaused;
+            const btn = document.getElementById('pauseBtn');
+            if (isPaused) {
+                btn.classList.replace('btn-grey', 'btn-dark');
+                btn.innerHTML = "Resume";
+            } else {
+                lastTimestamp = Date.now();
+                btn.classList.replace('btn-dark', 'btn-grey');
+                btn.innerHTML = "Pause";
+            }
+        }
+
+        function toggleWaiting() {
+            if (!isRunning || isPaused) return;
+            isWaiting = !isWaiting;
+            const btn = document.getElementById('waitBtn');
+            if (isWaiting) {
+                btn.classList.replace('btn-grey', 'btn-dark');
+                btn.classList.add('animate-pulse');
+            } else {
+                btn.classList.replace('btn-dark', 'btn-grey');
+                btn.classList.remove('animate-pulse');
+            }
+        }
+
+        function undoLastCycle() {
+            const hasHistory = cycleResults.length > 0;
+            const hasCurrentProgress = Object.keys(currentCycleData).length > 0 || isRunning;
+
+            if (!hasHistory && !hasCurrentProgress) {
+                alert("Nothing to reset.");
+                return;
+            }
+
+            if (!confirm("Are you sure you want to delete the last recorded cycle and reset progress?")) return;
+
+            if (hasHistory) {
+                cycleResults.pop();
+                cycleCountDisplay.innerText = cycleResults.length;
+                toast.classList.remove('hidden');
+                setTimeout(() => toast.classList.add('hidden'), 2000);
+            }
+
+            currentCycleData = {};
+            accumulatedStepTime = 0;
+            cycleWaitTime = 0;
+            mainTimer.innerText = "0.00";
+            
+            steps.forEach((_, i) => {
+                const b = document.getElementById(`step-btn-${i}`);
+                if(b) {
+                    b.classList.remove('step-btn-active');
+                    b.classList.add('step-btn-inactive');
+                }
+            });
+
+            stopTimer();
+            isPaused = false;
+            isWaiting = false;
+            
+            const pauseBtn = document.getElementById('pauseBtn');
+            pauseBtn.classList.replace('btn-dark', 'btn-grey');
+            pauseBtn.innerHTML = "Pause";
+            
+            const waitBtn = document.getElementById('waitBtn');
+            waitBtn.classList.replace('btn-dark', 'btn-grey');
+            waitBtn.classList.remove('animate-pulse');
+            waitBtn.innerHTML = "Waiting";
+        }
+
+        function recordStep(idx) {
+            if (!isRunning) {
+                if (idx !== 0) {
+                    alert("Click Step 1 to begin the cycle timer.");
+                    return;
+                }
+                startTimer();
+            }
+            
+            if (isPaused || isWaiting) return;
+            if (currentCycleData[idx] !== undefined) return;
+
+            const seconds = accumulatedStepTime / 1000;
+            currentCycleData[idx] = seconds;
+            
+            const btn = document.getElementById(`step-btn-${idx}`);
+            btn.classList.remove('step-btn-inactive');
+            btn.classList.add('step-btn-active');
+            
+            accumulatedStepTime = 0;
+            mainTimer.innerText = "0.00";
+
+            if (Object.keys(currentCycleData).length === steps.length) {
+                finishCycle();
+            }
+        }
+
+        function finishCycle() {
+            const netTotal = Object.values(currentCycleData).reduce((a, b) => a + b, 0);
+            const waitTotal = cycleWaitTime / 1000;
+            const now = new Date();
+            
+            cycleResults.push({
+                cycle: cycleResults.length + 1,
+                date: now.toLocaleDateString(),
+                time: now.toLocaleTimeString(),
+                stepResults: { ...currentCycleData },
+                netTotal: netTotal,
+                waitTime: waitTotal,
+                grossTotal: netTotal + waitTotal
+            });
+
+            stopTimer();
+            showSuccess();
+            
+            currentCycleData = {};
+            cycleWaitTime = 0;
+            cycleCountDisplay.innerText = cycleResults.length;
+            mainTimer.innerText = "0.00";
+            
+            setTimeout(() => {
+                steps.forEach((_, i) => {
+                    const b = document.getElementById(`step-btn-${i}`);
+                    if(b) {
+                        b.classList.remove('step-btn-active');
+                        b.classList.add('step-btn-inactive');
+                    }
+                });
+            }, 600);
+        }
+
+        function showSuccess() {
+            const modal = document.getElementById('recordModal');
+            const content = document.getElementById('modalContent');
+            const msg = document.getElementById('successMsg');
+            msg.innerText = `CYCLE ${cycleResults.length} RECORDED!`;
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => content.classList.replace('scale-90', 'scale-100'), 10);
+            setTimeout(() => {
+                content.classList.replace('scale-100', 'scale-90');
+                setTimeout(() => modal.classList.add('hidden'), 200);
+            }, 1200);
+        }
+
+        function calculateMedian(arr) {
+            if (arr.length === 0) return 0;
+            const sorted = [...arr].sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        }
+
+        function downloadReport() {
+            if (cycleResults.length === 0) {
+                alert("No cycles recorded yet.");
+                return;
+            }
+
+            let csvRows = [];
+            csvRows.push(`"Equipment ID","${config.eqId || 'N/A'}"`);
+            csvRows.push(`"Staff ID","${config.staffId || 'N/A'}"`);
+            csvRows.push(`"Process Title","${config.job || 'N/A'}"`);
+            csvRows.push(`"Study Date","${new Date().toLocaleDateString()}"`);
+            csvRows.push("");
+
+            let headers = ["Cycle #", "Date", "End Time"];
+            steps.forEach(s => headers.push(`"${s} (s)"`));
+            headers.push("Waiting Time (s)", "Net Cycle Time (s)", "Gross Cycle Time (s)");
+            csvRows.push(headers.join(","));
+
+            cycleResults.forEach(r => {
+                let row = [r.cycle, `"${r.date}"`, `"${r.time}"` ];
+                steps.forEach((_, i) => {
+                    row.push(r.stepResults[i].toFixed(2));
+                });
+                row.push(r.waitTime.toFixed(2));
+                row.push(r.netTotal.toFixed(2));
+                row.push(r.grossTotal.toFixed(2));
+                csvRows.push(row.join(","));
+            });
+
+            const nets = cycleResults.map(r => r.netTotal);
+            const grosses = cycleResults.map(r => r.grossTotal);
+            const waits = cycleResults.map(r => r.waitTime);
+            const sum = (a) => a.reduce((x, y) => x + y, 0);
+            const avg = (a) => a.length ? (sum(a) / a.length).toFixed(2) : "0.00";
+
+            csvRows.push("");
+            csvRows.push("SUMMARY STATISTICS");
+            csvRows.push(`"Total Cycles Recorded","${cycleResults.length}"`);
+            csvRows.push(`"Total Process Waiting Time (s)","${sum(waits).toFixed(2)}"`);
+            csvRows.push(`"Average Net Cycle Time (s)","${avg(nets)}"`);
+            csvRows.push(`"Average Gross Cycle Time (s)","${avg(grosses)}"`);
+            csvRows.push(`"Average Waiting Time (s)","${avg(waits)}"`);
+            csvRows.push(`"Median Net Cycle Time (s)","${calculateMedian(nets).toFixed(2)}"`);
+
+            const csvString = "\ufeff" + csvRows.join("\n");
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            
+            link.href = url;
+            link.setAttribute("download", `Golden_Timer_Report_${config.eqId || 'Study'}_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
