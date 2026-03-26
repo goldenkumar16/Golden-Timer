@@ -3,582 +3,803 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golden Timer</title>
+    <title>Cycle Timer Master</title>
+    <!-- Tailwind is used for layout; for absolute offline use, save this page as 'Webpage, Complete' -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        :root { 
+            --calc-bg: #121212; 
+            --calc-btn: #333333; 
+            --calc-btn-active: #ff9800; 
+            --calc-lcd: #9ea78d; 
+            --calc-lcd-text: #1a1c1a; 
+            --calc-red: #b91c1c; 
+            --calc-blue: #2563eb; 
+            --calc-teal: #0f766e; 
+        }
         
         body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #ffffff; 
-            -webkit-tap-highlight-color: transparent;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; 
+            background: var(--calc-bg); 
+            margin: 0; 
+            padding: 0; 
+            display: flex; 
+            justify-content: center; 
+            min-height: 100vh; 
+            color: #ffffff; 
+            overflow-x: hidden;
         }
         
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
-        .timer-container { 
-            background-color: #212529; 
-            border-radius: 24px; 
-            padding: 2rem 1rem; 
+        .screen { 
+            width: 100%; 
+            max-width: 500px; 
+            min-height: 100vh; 
+            background: #1e1e1e; 
+            display: none; 
+            padding: 20px; 
+            box-sizing: border-box; 
             position: relative; 
-            width: 100%;
+            border-left: 1px solid #2a2a2a; 
+            border-right: 1px solid #2a2a2a; 
         }
+        .active { display: block; }
 
-        .timer-text { 
-            font-family: 'Inter', sans-serif; 
-            font-weight: 800; 
-            color: #00d2ff; 
-            font-size: clamp(3.5rem, 15vw, 5.5rem); 
-            line-height: 1; 
-            text-align: center; 
-        }
-
-        .cycle-pill { 
-            background-color: #ff9f00; 
-            color: white; 
-            padding: 4px 10px; 
-            border-radius: 10px; 
-            font-weight: 800; 
-            font-size: 0.7rem; 
-            position: absolute; 
-            top: 12px; 
-            right: 12px; 
-        }
-        
-        .btn-grey { background-color: #adb5bd; color: white; font-weight: 700; border-radius: 16px; }
-        .btn-slate { background-color: #495057; color: white; font-weight: 700; border-radius: 12px; }
-        .btn-dark { background-color: #212529; color: white; font-weight: 800; border-radius: 16px; }
-        .btn-red { background-color: #e11d48; color: white; font-weight: 900; border-radius: 20px; }
-        
-        .step-btn { 
-            border-radius: 20px; 
-            padding: 1.25rem 0.75rem; 
-            text-align: center; 
-            font-weight: 900; 
-            font-size: 0.8rem; 
-            line-height: 1.2; 
-            text-transform: uppercase; 
-            transition: all 0.2s; 
-            border: 4px solid transparent; 
-            min-height: 85px;
+        .btn-calc {
+            background-color: var(--calc-btn);
+            border-radius: 14px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 0 #000, 0 6px 10px rgba(0,0,0,0.5);
+            color: #ffffff;
+            font-weight: 800;
+            text-transform: uppercase;
+            transition: all 0.05s;
+            position: relative;
+            top: 0;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.05);
             display: flex;
             align-items: center;
             justify-content: center;
+            text-align: center;
+            touch-action: manipulation;
+        }
+        .btn-calc:active:not(:disabled) {
+            top: 3px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.5), 0 1px 0 #000, 0 2px 4px rgba(0,0,0,0.3);
         }
 
-        .step-btn-inactive { 
-            background-color: #FFB300; 
-            color: #000000; 
-            box-shadow: 0 5px 0px #cc8e00; 
-        }
+        .menu-card { padding: 24px; font-size: 1.25rem; letter-spacing: 0.05em; margin-bottom: 20px; width: 100%; }
+        .btn-step { height: 85px; font-size: 0.72rem; padding: 8px; line-height: 1.2; width: 100%; }
+        .step-available { background-color: #333 !important; } 
+        .step-active { background-color: var(--calc-btn-active) !important; color: #000 !important; box-shadow: inset 0 1px 2px rgba(255,255,255,0.5), 0 4px 0 #b36b00, 0 8px 12px rgba(0,0,0,0.5); } 
+        .btn-calc:disabled { opacity: 0.25; cursor: not-allowed; box-shadow: none; top: 0; filter: grayscale(100%); }
 
-        .step-btn-active { 
-            background-color: #22c55e; 
-            color: white; 
-            border-color: #166534; 
-            box-shadow: 0 4px 0px #166534; 
-            animation: pulse-active 1.5s infinite; 
+        .equip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; }
+        .equip-item { padding: 24px 12px; font-size: 1.1rem; }
+
+        .timer-container { 
+            background-color: var(--calc-lcd); 
+            border-radius: 12px; 
+            padding: 12px 18px; 
+            position: relative; 
+            width: 100%; 
+            margin-bottom: 18px; 
+            border: 4px solid #000;
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.3), 0 2px 0 rgba(255,255,255,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            box-sizing: border-box;
         }
         
-        .step-btn-recorded { 
-            background-color: #15803d; 
-            color: white; 
-            border-color: #14532d; 
-            opacity: 0.85; 
-        }
-
-        @keyframes pulse-active {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4); }
-            100% { transform: scale(1); }
+        .lcd-sub-section { border-bottom: 1px solid rgba(0,0,0,0.15); padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .lcd-label { font-size: 0.6rem; font-weight: 900; color: rgba(0,0,0,0.5); text-transform: uppercase; }
+        
+        .lcd-secondary-text {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-weight: 900;
+            color: rgba(26, 28, 26, 0.6);
+            font-size: 1.2rem;
         }
         
-        .hidden { display: none; }
-
-        .bold-label {
-            color: #000000 !important;
-            font-weight: 900 !important;
+        #main-timer { 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+            font-weight: 900; 
+            color: var(--calc-lcd-text); 
+            text-align: right; 
+            line-height: 1; 
+            font-size: 3.2rem;
+            white-space: nowrap;
         }
+
+        .dark-input { border: 2px solid #333; padding: 14px; border-radius: 10px; width: 100%; font-weight: 700; outline: none; background: #121212; color: #fff; box-sizing: border-box; }
+        .dark-input:focus { border-color: var(--calc-btn-active); }
+        .setup-label { font-size: 0.7rem; font-weight: 900; text-transform: uppercase; color: #666; margin-bottom: 6px; display: block; }
+
+        #toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: #ffffff; color: #000000; padding: 12px 24px; border-radius: 12px; font-weight: 900; font-size: 0.8rem; text-transform: uppercase; z-index: 9999; display: none; box-shadow: 0 20px 50px rgba(0,0,0,0.8); border: 3px solid #000; pointer-events: none; }
+        #custom-modal-overlay, #share-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        #custom-modal, #share-modal { background: #222; padding: 32px; border-radius: 24px; max-width: 360px; text-align: center; border: 2px solid #333; color: white; margin: 20px; width: 90%; }
+    
+        .mode-active { background-color: white !important; color: black !important; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3) !important; }
+        .admin-only { display: none !important; }
+        .logged-in .admin-only { display: block !important; }
+        
+        .btn-red { background-color: var(--calc-red) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 0 #600, 0 8px 15px rgba(0,0,0,0.4); }
+        .btn-blue { background-color: var(--calc-blue) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 0 #1e3a8a, 0 8px 15px rgba(0,0,0,0.4); }
+        .btn-teal { background-color: var(--calc-teal) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 0 #0d5a54, 0 8px 15px rgba(0,0,0,0.4); }
+
+        .status-badge { font-size: 0.5rem; padding: 2px 6px; border-radius: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+        .status-online { background: #059669; color: white; }
+        .status-offline { background: #dc2626; color: white; }
+
+        .icon { width: 24px; height: 24px; fill: currentColor; flex-shrink: 0; }
     </style>
 </head>
-<body class="min-h-screen p-3 md:p-6 flex flex-col items-center">
+<body id="app-body">
 
-    <!-- PAGE 1: SETUP -->
-    <div id="setupPage" class="w-full max-w-[500px] bg-slate-50 border border-slate-200 rounded-[2.5rem] p-6 md:p-8 shadow-sm my-auto">
-        <h1 class="text-4xl font-black text-blue-900 mb-8 text-center uppercase tracking-tight">Golden Timer</h1>
-        
-        <div class="space-y-6">
-            <div class="space-y-4">
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[11px] bold-label uppercase mb-1">Equipment ID</label>
-                        <input type="text" id="setupEqId" class="w-full p-3 bg-white border border-slate-300 rounded-xl outline-none text-black font-bold focus:border-black transition text-sm" placeholder="ID">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] bold-label uppercase mb-1">Staff ID</label>
-                        <input type="text" id="setupStaffId" class="w-full p-3 bg-white border border-slate-300 rounded-xl outline-none text-black font-bold focus:border-black transition text-sm" placeholder="Staff">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-[11px] bold-label uppercase mb-1">Process Title</label>
-                    <input type="text" id="setupJob" class="w-full p-3 bg-white border border-slate-300 rounded-xl outline-none text-black font-bold focus:border-black transition text-sm" placeholder="Process Name">
-                </div>
-            </div>
-
-            <div class="pt-6 border-t border-slate-200">
-                <label class="block text-[14px] bold-label uppercase mb-3">Add Steps <span class="text-blue-600">*</span></label>
-                <div class="flex flex-nowrap gap-2 mb-4 w-full">
-                    <input type="text" id="setupStepInput" class="flex-1 min-w-0 p-3 bg-white border border-slate-300 rounded-xl outline-none text-black font-bold text-sm" placeholder="Step name...">
-                    <button onclick="addStepFromSetup()" class="shrink-0 bg-blue-600 text-white px-5 py-2 rounded-xl font-bold text-sm active:scale-95 transition">Add</button>
-                </div>
-                <div id="setupStepsList" class="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar"></div>
-            </div>
-
-            <button onclick="goToTimerPage()" class="w-full py-4 bg-slate-800 text-white rounded-2xl font-black text-lg hover:bg-slate-900 active:scale-[0.98] transition shadow-lg uppercase tracking-wider mt-2">
-                Done - Open Timer
-            </button>
-        </div>
-    </div>
-
-    <!-- PAGE 2: TIMER -->
-    <div id="timerPage" class="w-full max-w-[500px] hidden space-y-4">
-        
-        <div class="flex justify-between items-center mb-1">
-            <button onclick="goHome()" class="flex items-center gap-1 text-slate-500 font-bold hover:text-slate-800 transition text-xs">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                HOME
-            </button>
-            <div id="currentDateDisplay" class="text-[10px] font-black text-slate-400 uppercase tracking-widest"></div>
-        </div>
-
-        <div class="timer-container shadow-2xl">
-            <div class="cycle-pill uppercase">Cycles: <span id="cycleCount">0</span></div>
-            <div id="mainTimer" class="timer-text">0.00</div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-            <button id="pauseBtn" onclick="togglePause()" class="btn-grey py-4 flex items-center justify-center gap-2 text-md uppercase tracking-wider active:scale-95 transition">
-                Pause
-            </button>
-            <button id="waitBtn" onclick="toggleWaiting()" class="btn-grey py-4 flex items-center justify-center gap-2 text-md uppercase tracking-wider active:scale-95 transition">
-                Waiting
-            </button>
-        </div>
-
-        <!-- Dual Reset Buttons -->
-        <div class="grid grid-cols-2 gap-3">
-            <button onclick="undoLastCycle()" class="btn-slate py-4 text-[10px] uppercase font-black active:scale-95 transition text-center px-1">
-                Reset Last Cycle
-            </button>
-            <button onclick="resetFull()" class="btn-slate py-4 text-[10px] uppercase font-black active:scale-95 transition text-center px-1 bg-slate-600">
-                Reset Full
-            </button>
-        </div>
-
-        <div id="stepGrid" class="grid grid-cols-2 gap-3 pt-2">
-            <!-- Buttons generated dynamically -->
-        </div>
-
-        <button id="stopCycleBtn" onclick="stopCycle()" class="btn-red w-full py-6 text-2xl uppercase tracking-widest mt-4 shadow-xl active:scale-95 transition hidden">
-            STOP & RECORD
-        </button>
-
-        <button onclick="downloadReport()" class="btn-dark w-full py-5 text-lg uppercase tracking-widest mt-6 shadow-xl active:scale-95 transition">
-            Download Report (CSV)
-        </button>
-
-        <div id="sessionStatus" class="text-center text-[10px] font-black text-slate-400 uppercase tracking-widest py-3">
-            Waiting - Click Step 1
-        </div>
-    </div>
-
-    <!-- Success Modal -->
-    <div id="recordModal" class="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50 hidden">
-        <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl text-center scale-90 transition-all duration-300 mx-4 w-full max-w-sm" id="modalContent">
-            <div class="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-            </div>
-            <h2 class="text-2xl font-black text-slate-800 uppercase" id="successMsg">Cycle Recorded!</h2>
-            <p class="text-slate-500 font-bold uppercase text-xs mt-2">Ready for next cycle</p>
-        </div>
-    </div>
-
-    <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 px-6 py-3 bg-red-600 text-white rounded-full shadow-2xl text-[10px] font-black uppercase tracking-widest hidden z-50">
-        Last Cycle Deleted
-    </div>
-
-    <!-- Alert Box -->
-    <div id="alertBox" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50 hidden">
-        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-xs w-full text-center">
-            <p id="alertText" class="text-sm font-bold text-slate-800 mb-4"></p>
-            <button onclick="closeAlert()" class="w-full py-2 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase">OK</button>
-        </div>
-    </div>
-
-    <!-- Confirm Box -->
-    <div id="confirmBox" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50 hidden">
-        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-xs w-full text-center">
-            <p id="confirmText" class="text-sm font-bold text-slate-800 mb-4"></p>
-            <div class="flex gap-3">
-                <button onclick="closeConfirm(false)" class="flex-1 py-2 bg-slate-200 text-slate-800 rounded-xl font-bold text-xs uppercase">Cancel</button>
-                <button onclick="closeConfirm(true)" class="flex-1 py-2 bg-red-600 text-white rounded-xl font-bold text-xs uppercase">Reset</button>
+    <div id="custom-modal-overlay">
+        <div id="custom-modal">
+            <h3 id="modal-title" class="text-2xl font-black uppercase mb-3">Confirm Action</h3>
+            <p id="modal-msg" class="text-slate-400 font-bold mb-10">Select action to proceed.</p>
+            <div class="flex gap-4">
+                <button class="btn-calc flex-1 py-5 text-xs" onclick="closeModal()">CANCEL</button>
+                <button class="btn-calc btn-red flex-1 py-5 text-xs" id="modal-confirm-btn">EXECUTE</button>
             </div>
         </div>
     </div>
 
-    <script>
-        let steps = [];
-        let cycleResults = [];
-        let currentCycleData = {};
-        let config = { eqId: '', staffId: '', job: '' };
-        
-        let isRunning = false;
-        let isPaused = false;
-        let isWaiting = false;
-
-        let activeStepIndex = -1;
-        let accumulatedStepTime = 0;
-        let lastTimestamp = 0;
-        let cycleWaitTime = 0;
-        let timerInterval = null;
-        let confirmCallback = null;
-
-        const setupPage = document.getElementById('setupPage');
-        const timerPage = document.getElementById('timerPage');
-        const mainTimer = document.getElementById('mainTimer');
-        const setupStepsList = document.getElementById('setupStepsList');
-        const stepGrid = document.getElementById('stepGrid');
-        const stopCycleBtn = document.getElementById('stopCycleBtn');
-        const cycleCountDisplay = document.getElementById('cycleCount');
-        const statusLabel = document.getElementById('sessionStatus');
-        const currentDateDisplay = document.getElementById('currentDateDisplay');
-        const toast = document.getElementById('toast');
-        const alertBox = document.getElementById('alertBox');
-        const alertText = document.getElementById('alertText');
-        const confirmBox = document.getElementById('confirmBox');
-        const confirmText = document.getElementById('confirmText');
-
-        function showAlert(msg) {
-            alertText.innerText = msg;
-            alertBox.classList.remove('hidden');
-        }
-
-        function closeAlert() {
-            alertBox.classList.add('hidden');
-        }
-
-        function showConfirm(msg, callback) {
-            confirmText.innerText = msg;
-            confirmCallback = callback;
-            confirmBox.classList.remove('hidden');
-        }
-
-        function closeConfirm(result) {
-            confirmBox.classList.add('hidden');
-            if (result && confirmCallback) confirmCallback();
-            confirmCallback = null;
-        }
-
-        function addStepFromSetup() {
-            const input = document.getElementById('setupStepInput');
-            const name = input.value.trim();
-            if (!name) return;
-            steps.push(name);
-            input.value = '';
-            renderSetupSteps();
-        }
-
-        function renderSetupSteps() {
-            setupStepsList.innerHTML = steps.map((name, idx) => `
-                <div class="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200">
-                    <span class="font-black text-blue-500 mr-2 w-6 text-xs">#${idx + 1}</span>
-                    <span class="flex-1 font-bold text-slate-700 truncate text-xs uppercase">${name}</span>
-                    <button onclick="removeStep(${idx})" class="text-slate-300 hover:text-red-500 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-                </div>
-            `).join('');
-        }
-
-        function removeStep(idx) {
-            steps.splice(idx, 1);
-            renderSetupSteps();
-        }
-
-        function goToTimerPage() {
-            config.eqId = document.getElementById('setupEqId').value.trim();
-            config.staffId = document.getElementById('setupStaffId').value.trim();
-            config.job = document.getElementById('setupJob').value.trim();
-
-            if (steps.length === 0) {
-                showAlert("Please add at least one step.");
-                return;
-            }
-
-            renderStepGrid();
-            currentDateDisplay.innerText = new Date().toLocaleDateString();
-            setupPage.classList.add('hidden');
-            timerPage.classList.remove('hidden');
-        }
-
-        function goHome() {
-            stopTimer();
-            timerPage.classList.add('hidden');
-            setupPage.classList.remove('hidden');
-        }
-
-        function renderStepGrid() {
-            stepGrid.innerHTML = steps.map((name, idx) => `
-                <button id="step-btn-${idx}" onclick="recordStep(${idx})" class="step-btn step-btn-inactive shadow-md">
-                    <span class="line-clamp-2">${idx + 1}. ${name}</span>
+    <!-- Share Modal -->
+    <div id="share-modal-overlay">
+        <div id="share-modal">
+            <h3 class="text-2xl font-black uppercase mb-3 italic">Share <span class="text-orange-500">Excel</span></h3>
+            <p class="text-slate-400 font-bold mb-8">Choose platform to send the cycle record file.</p>
+            <div class="flex flex-col gap-4">
+                <button class="btn-calc py-5 text-xs" onclick="handleShare('whatsapp')" style="background-color: #25D366; color: white;">
+                    <svg class="icon mr-2" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.819 9.819 0 0 0 12.04 2zM12.04 20.13c-1.48 0-2.93-.4-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31c-.83-1.31-1.26-2.84-1.26-4.41 0-4.51 3.67-8.18 8.18-8.18 2.19 0 4.24.85 5.78 2.4s2.4 3.59 2.4 5.78c-.01 4.51-3.68 8.18-8.12 8.18zm4.48-6.13c-.25-.13-1.47-.72-1.69-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.03-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.12-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.87.85-.87 2.07 0 1.22.89 2.39 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.1-.23-.16-.48-.29z"/></svg>
+                    WHATSAPP FILE
                 </button>
-            `).join('');
-        }
+                <button class="btn-calc py-5 text-xs" onclick="handleShare('email')" style="background-color: #ea4335; color: white;">
+                    <svg class="icon mr-2" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                    EMAIL FILE
+                </button>
+                <button class="btn-calc py-4 text-xs mt-4" onclick="closeShareModal()">CANCEL</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast"></div>
 
-        function startTimer() {
-            if (timerInterval) clearInterval(timerInterval);
-            lastTimestamp = Date.now();
-            timerInterval = setInterval(tick, 10);
-            isRunning = true;
-            statusLabel.innerText = "RECORDING...";
-            statusLabel.className = "text-center text-[10px] font-black text-green-500 uppercase tracking-widest py-3";
-        }
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="screen">
+        <button class="btn-calc px-6 py-4 text-xs mb-16" onclick="showScreen('home-screen')">
+            <svg class="icon mr-2" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> RETURN
+        </button>
+        <div class="text-center mb-12">
+            <h2 class="text-4xl font-black uppercase tracking-tight">SECURE PIN</h2>
+        </div>
+        <div class="space-y-8 p-4">
+            <input type="password" id="adminPin" placeholder="••••" class="dark-input text-center text-4xl tracking-[20px]">
+            <button onclick="attemptLogin()" class="btn-calc w-full py-7 text-sm tracking-[0.3em]">
+                AUTHORIZE
+            </button>
+        </div>
+    </div>
 
-        function stopTimer() {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            isRunning = false;
-            activeStepIndex = -1;
-            stopCycleBtn.classList.add('hidden');
-            statusLabel.innerText = "READY - CLICK STEP 1";
-            statusLabel.className = "text-center text-[10px] font-black text-slate-400 uppercase tracking-widest py-3";
-        }
+    <!-- HOME SCREEN -->
+    <div id="home-screen" class="screen active">
+        <div class="flex justify-between items-start mt-4 mb-12">
+             <div class="text-left">
+                <div class="flex items-center gap-3 mb-1">
+                    <h1 class="text-3xl sm:text-4xl font-black tracking-tighter leading-none italic uppercase">Cycle <span class="text-orange-500">Timer</span></h1>
+                    <span id="conn-status" class="status-badge status-online">Online</span>
+                </div>
+                <p class="text-slate-500 font-black uppercase tracking-[0.2em] text-[10px] mt-2">CYCLE TIME RECORDER</p>
+            </div>
+            <div class="flex gap-4">
+                <button id="login-btn" onclick="showScreen('login-screen')" class="btn-calc w-14 h-14">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM8.9 6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H8.9V6zM18 20H6V10h12v10z"/></svg>
+                </button>
+                <button id="logout-btn" onclick="logout()" class="admin-only btn-calc btn-red w-14 h-14 hidden">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/></svg>
+                </button>
+            </div>
+        </div>
 
-        function tick() {
-            if (isPaused) return;
-            const now = Date.now();
-            const delta = now - lastTimestamp;
-            lastTimestamp = now;
+        <div class="flex flex-col gap-6">
+            <button class="btn-calc menu-card" style="background-color: var(--calc-btn-active); color: #000;" onclick="showScreen('ct-ops-screen')">
+                <span class="flex-1 text-left">CT OPS</span>
+                <svg class="icon w-8 h-8" viewBox="0 0 24 24"><path d="M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.65 2.62.99 4 .99h2v-2h-2zM3.93 11.06L2 13h10.29l1.86-1.94H3.93zm16.43-3.69l-1.14-1.14c-.39-.39-1.02-.39-1.41 0l-3.32 3.32c-.39.39-.39 1.02 0 1.41l1.14 1.14c.39.39 1.02.39 1.41 0l3.32-3.32c.4-.39.4-1.03.01-1.41z"/></svg>
+            </button>
+            <button class="btn-calc menu-card" style="background-color: var(--calc-blue);" onclick="showScreen('gct-ops-screen')">
+                <span class="flex-1 text-left">GCT OPS</span>
+                <svg class="icon w-8 h-8" viewBox="0 0 24 24"><path d="M3 13h18v-2H3v2zm0 4h18v-2H3v2zm0 4h18v-2H3v2zm0-12h18V7H3v2zm0-4h18V3H3v2z"/></svg>
+            </button>
+            <button class="btn-calc menu-card" style="background-color: var(--calc-teal);" onclick="showScreen('mr-screen')">
+                <span class="flex-1 text-left">M&R LOGS</span>
+                <svg class="icon w-8 h-8" viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6.3 6.3 9 1.7 4.4C.6 6.8 1 9.8 3 11.8c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.4-.4.4-1.1 0-1.5z"/></svg>
+            </button>
+            <button class="btn-calc menu-card" onclick="openQuickManual()">
+                <span class="flex-1 text-left">MANUAL SETUP</span>
+                <svg class="icon w-8 h-8" viewBox="0 0 24 24"><path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></svg>
+            </button>
+        </div>
 
-            if (!isWaiting) {
-                accumulatedStepTime += delta;
-            } else {
-                cycleWaitTime += delta;
-            }
+        <div class="mt-20 pt-8 border-t border-white/5">
+            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center leading-relaxed">
+                Developed By:<br>
+                <span class="text-white text-xs">Mr. Golden Micheal</span><br>
+                <span class="opacity-50 italic lowercase">Port of Salalah</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- MANUAL SETUP SCREEN -->
+    <div id="manual-setup-screen" class="screen">
+        <div class="flex justify-between items-center mb-10">
+            <button class="btn-calc px-5 py-4 text-xs" onclick="showScreen(window.parentScreen)">
+                <svg class="icon w-4 h-4 mr-1" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> BACK
+            </button>
+            <div id="auth-status-container">
+                <button id="google-login-btn" onclick="loginWithGoogle()" class="btn-calc px-5 py-3 text-[11px]">
+                    CLOUD SYNC
+                </button>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <h2 id="setup-title" class="text-2xl font-black uppercase tracking-tight">Configuration</h2>
+            <div>
+                <label class="setup-label">Asset Identifier</label>
+                <input type="text" id="manualEquipId" placeholder="e.g. CRANE-05" class="dark-input">
+            </div>
+            <div id="staff-id-group">
+                <label class="setup-label">Operator ID</label>
+                <input type="text" id="manualStaffId" placeholder="STAFF-ID" class="dark-input">
+            </div>
+            <div class="bg-white/5 p-6 rounded-2xl border border-white/5">
+                <label class="setup-label">Sequence Steps</label>
+                <div class="flex gap-2">
+                    <input type="text" id="manualStepInput" placeholder="Action..." class="dark-input">
+                    <button onclick="addManualStep()" class="btn-calc btn-blue px-4 text-[11px]">ADD</button>
+                </div>
+                <div id="manualStepList" class="space-y-3 mt-6 max-h-[250px] overflow-y-auto pr-2"></div>
+            </div>
+            <button id="run-once-btn" onclick="openManualTimer()" class="btn-calc w-full py-6 text-sm tracking-widest">
+                START MEASUREMENT
+            </button>
+        </div>
+    </div>
+
+    <!-- TIMER SCREEN -->
+    <div id="timer-screen" class="screen">
+        <div class="flex justify-between items-center mb-6">
+            <button id="timer-home-btn" onclick="goHome()" class="btn-calc px-5 py-3 text-[11px]">
+                <svg class="icon w-4 h-4 mr-1" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg> EXIT
+            </button>
+            <div id="dateDisplay" class="text-[11px] font-black opacity-30 uppercase tracking-[0.3em]"></div>
+        </div>
+
+        <div id="standard-inputs" class="mb-4">
+            <div class="flex gap-4 mb-4" id="modeToggleContainer">
+                <button id="m-load" class="btn-calc flex-1 py-5 text-sm mode-active" onclick="updateMode('LOADING')">LOADING</button>
+                <button id="m-dis" class="btn-calc flex-1 py-5 text-sm opacity-30" onclick="updateMode('DISCHARGE')">DISCHARGE</button>
+            </div>
+            <div id="dynamic-inputs" class="space-y-3"></div>
+        </div>
+
+        <div class="timer-container">
+            <div class="lcd-sub-section">
+                <div class="flex items-center gap-2">
+                    <span class="lcd-label">LAST</span>
+                    <span id="last-cycle-display" class="lcd-secondary-text">0.00</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="lcd-label">No. of Cycles</span>
+                    <span id="cycle-count" class="lcd-secondary-text">0</span>
+                </div>
+            </div>
+            <div class="flex justify-between items-end">
+                <span class="lcd-label mb-1">CURRENT</span>
+                <div id="main-timer">0.00</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-2">
+            <button id="pause-btn" onclick="togglePause()" class="btn-calc py-6 text-xs" style="background-color: #f59e0b;">PAUSE</button>
+            <button id="wait-btn" onclick="toggleWaiting()" class="btn-calc py-6 text-xs" style="background-color: #0ea5e9;">WAITING</button>
+        </div>
+
+        <!-- RESET BUTTONS UNDER PAUSE/WAITING -->
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <button onclick="resetLastRecord()" class="btn-calc py-4 text-[10px]" style="background-color: #64748b;">RESET LAST</button>
+            <button onclick="resetAllRecordsInTimer()" class="btn-calc py-4 text-[10px]" style="background-color: #475569;">RESET ALL</button>
+        </div>
+
+        <div id="step-grid" class="grid grid-cols-2 gap-4 pt-2"></div>
+
+        <button id="stop-cycle-btn" onclick="stopCycle()" class="btn-calc btn-red w-full py-8 text-2xl tracking-[0.2em] mt-8 hidden">
+            STOP & LOG
+        </button>
+
+        <div class="flex flex-col gap-4 mt-12 mb-10">
+            <button onclick="downloadReport()" class="btn-calc w-full py-6 text-sm tracking-widest">
+                DOWNLOAD CSV (OFFLINE)
+            </button>
+            <button onclick="openShareModal()" class="btn-calc btn-teal w-full py-6 text-sm tracking-widest">
+                SHARE EXCEL REPORT
+            </button>
+            <button onclick="clearLocalStorage()" class="text-[10px] font-black text-red-500 uppercase tracking-widest opacity-40 hover:opacity-100 transition">
+                Wipe Global Data
+            </button>
+        </div>
+    </div>
+
+    <!-- SUCCESS MODAL -->
+    <div id="recordModal" class="fixed inset-0 flex items-center justify-center bg-black/95 backdrop-blur-md z-50 hidden">
+        <div class="bg-white p-14 rounded-[3rem] shadow-2xl text-center mx-4 w-full max-w-[320px]">
+            <div class="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="icon w-10 h-10" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <h2 class="text-3xl font-black text-black uppercase tracking-tighter">LOGGED</h2>
+        </div>
+    </div>
+
+    <!-- ASSET SCREENS -->
+    <div id="ct-ops-screen" class="screen">
+        <button class="btn-calc px-5 py-4 text-xs mb-10" onclick="showScreen('home-screen')">BACK</button>
+        <h2 class="text-3xl font-black uppercase mb-8">CT ASSETS</h2>
+        <div class="equip-grid" id="ct-grid"></div>
+    </div>
+    <div id="gct-ops-screen" class="screen">
+        <button class="btn-calc px-5 py-4 text-xs mb-10" onclick="showScreen('home-screen')">BACK</button>
+        <h2 class="text-3xl font-black uppercase mb-8">GCT ASSETS</h2>
+        <div class="equip-grid" id="gct-grid"></div>
+    </div>
+    <div id="mr-screen" class="screen">
+        <button class="btn-calc px-5 py-4 text-xs mb-10" onclick="showScreen('home-screen')">BACK</button>
+        <h2 class="text-3xl font-black uppercase mb-8">M&R LOGS</h2>
+        <div class="equip-grid" id="mr-grid"></div>
+    </div>
+
+<script type="module">
+    // Firebase is initialized within a try-catch to allow the rest of the app to function if offline
+    let initializeApp, getAuth, signInAnonymously, onAuthStateChanged, getFirestore, enableIndexedDbPersistence;
+    
+    try {
+        const firebaseApp = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
+        const firebaseAuth = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+        const firebaseFirestore = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+        
+        initializeApp = firebaseApp.initializeApp;
+        getAuth = firebaseAuth.getAuth;
+        signInAnonymously = firebaseAuth.signInAnonymously;
+        onAuthStateChanged = firebaseAuth.onAuthStateChanged;
+        getFirestore = firebaseFirestore.getFirestore;
+        enableIndexedDbPersistence = firebaseFirestore.enableIndexedDbPersistence;
+    } catch(e) {
+        console.warn("Firebase CDN could not be reached. App is running in Local-Only mode.");
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        if (t) { t.innerText = msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2500); }
+    }
+    window.showToast = showToast;
+
+    // LOCAL STORAGE KEYS
+    const LOGS_STORAGE_KEY = 'cycle_timer_offline_logs';
+
+    let firebaseConfig = null;
+    try { if (typeof __firebase_config !== 'undefined' && __firebase_config) firebaseConfig = JSON.parse(__firebase_config); } catch (e) {}
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+    let app, auth, db;
+    if (firebaseConfig && firebaseConfig.apiKey && initializeApp) { 
+        try {
+            app = initializeApp(firebaseConfig); 
+            auth = getAuth(app); 
+            db = getFirestore(app); 
             
-            mainTimer.innerText = (accumulatedStepTime / 1000).toFixed(2);
+            enableIndexedDbPersistence(db).catch((err) => {
+                if (err.code == 'failed-precondition') console.warn("Multiple tabs open");
+            });
+            signInAnonymously(auth);
+        } catch(e) {
+            console.warn("Firebase Init failed.");
         }
+    }
 
-        function togglePause() {
-            if (!isRunning) return;
-            isPaused = !isPaused;
-            const btn = document.getElementById('pauseBtn');
-            if (isPaused) {
-                btn.classList.replace('btn-grey', 'btn-dark');
-                btn.innerHTML = "Resume";
-            } else {
-                lastTimestamp = Date.now();
-                btn.classList.replace('btn-dark', 'btn-grey');
-                btn.innerHTML = "Pause";
+    // STATE
+    let logs = [];
+    let currentCrane = '';
+    let currentMode = 'LOADING';
+    let currentCategory = 'Above Deck';
+    let currentSteps = [];
+    let cycleCount = 0;
+    let activeInterval = null;
+    let startTime = null;     
+    let lastTime = null;
+    let isPaused = false;
+    let isWaiting = false;
+    let totalWaitingDuration = 0; 
+    let delayStart = null;
+    let currentCycleData = {};
+
+    const standardSteps = {
+        LOADING: [
+            "1. FROM PARK POSITION TO ADJUST ON TRUCK",
+            "2. FROM START ADJUSTING ON TRUCK TO LOCK THE CONTAINER ON TRUCK",
+            "3. FROM LOCK ON CONTAINER ON TRUCK TO SILL BEAM",
+            "4. FROM SILL BEAM TO START ADJUSTING ON TARGET ROW",
+            "5. FROM START ADJUSTING ON TARGET ROW TO UNLOCK",
+            "6. FROM UNLOCK TO SILL BEAM"
+        ],
+        DISCHARGE: [
+            "1. FROM PARK TO SILL BEAM TO START TARGET ROW",
+            "2. FROM START ADJUSTING ON CONTAINER TO LOCK",
+            "3. FROM LOCK TO SILL BEAM",
+            "4. FROM SILL BEAM TO START ADJUSTING ON TRUCK",
+            "5. FROM START ADJUSTING ON TRUCK TO UNLOCK ON TRUCK",
+            "6. FROM UNLOCK TRUCK TO SILL BEAM/PARK POSITION"
+        ]
+    };
+
+    const config = {
+        QC: {
+            "Above Deck": standardSteps,
+            "Below Deck": standardSteps,
+            "Hatch cover": {
+                LOADING: [
+                    "1. From Park position Or Sillbeam TO Adjustment on Hatch cover",
+                    "2. From start Adjusting to lock",
+                    "3. From lock on Hatch cover to sillbeam",
+                    "4. From sillbeam to start adjust on target row",
+                    "5. From Start adjust on target row to Unlock",
+                    "6. From Unlock to sillbeam"
+                ],
+                DISCHARGE: [
+                    "1. From Park position / Sillbeam to target hatch cover location",
+                    "2. From Start adjust on hatch cover to Lock",
+                    "3. From Lock to sillbeam",
+                    "4. From Sillbeam to start Aligning on back reach",
+                    "5. From start Aligning on back reach to Unlock",
+                    "6. From Unlock to sillbeam / Park position"
+                ]
+            },
+            "OOG (OHF)": {
+                LOADING: [
+                    "1. From Park position Or Sillbeam TO Adjustment on TT",
+                    "2. From start Adjusting to lock",
+                    "3. From lock on OOG to sillbeam",
+                    "4. From sillbeam to start adjust on target row",
+                    "5. From Start adjust on target row to Unlock",
+                    "6. From Unlock to sillbeam"
+                ],
+                DISCHARGE: [
+                    "1. From Park position / Sillbeam to target OOG",
+                    "2. From Start adjust on OOG to Lock",
+                    "3. From Lock to sillbeam",
+                    "4. From Sillbeam to start Adjusting on TT",
+                    "5. From start Adjustment on TT to Unlock",
+                    "6. From Unlock to sillbeam / Park position"
+                ]
+            },
+            "OOG (Wire sling)": {
+                DISCHARGE: [
+                    "1. From Park position / Sillbeam to target OOG",
+                    "2. From Start adjust on OOG to Awaiting attachements",
+                    "3. From Awaiting attachements by dowelman to clearance to hoist"
+                ],
+                LOADING: [
+                    "1. Hook up OOG",
+                    "2. Lift OOG",
+                    "3. Release OOG"
+                ]
+            }
+        },
+        RTG: {
+            LOADING: [
+                "1. FROM PARK POSITION TO LOCK CONTAINER IN THE BAY",
+                "2. FROM LOCK IN THE BAY TO A-ROW",
+                "3. FROM A- ROW TO UNLOCK ON TRUCK",
+                "4. FROM UNLOCK ON TRUCK TO PARK POSITION"
+            ],
+            DISCHARGE: [
+                "1. FROM PARK POSITION TO LOCK ON TRUCK",
+                "2. FROM LOCK ON TRUCK TO UNLOCK ON TARGET ROW",
+                "3. FROM UNLOCK TO PARK POSITION"
+            ]
+        },
+        TT: {
+            LOADING: ["1. Lifted by QC", "2. Move to RTG", "3. Rec from RTG", "4. Move to PULL", "5. Move to Pinning", "6. Fixing twistlock", "7. Standby"],
+            DISCHARGE: ["1. Rec from QC", "2. Move to Pinning", "3. Twistlocks out", "4. Move to RTG", "5. Discharged", "6. Move to PULL", "7. Standby"]
+        },
+        DEFAULT: ["1. Start cycle", "2. End cycle"]
+    };
+
+    // OFFLINE LOGIC
+    function saveLogsToLocal() {
+        localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(logs));
+    }
+
+    function loadLogsFromLocal() {
+        const saved = localStorage.getItem(LOGS_STORAGE_KEY);
+        if (saved) {
+            logs = JSON.parse(saved);
+            cycleCount = logs.length;
+            document.getElementById('cycle-count').innerText = cycleCount;
+            if (cycleCount > 0) {
+                document.getElementById('last-cycle-display').innerText = logs[logs.length-1].Net_Cycle || "0.00";
             }
         }
+    }
 
-        function toggleWaiting() {
-            if (!isRunning || isPaused) return;
-            isWaiting = !isWaiting;
-            const btn = document.getElementById('waitBtn');
-            if (isWaiting) {
-                btn.classList.replace('btn-grey', 'btn-dark');
-                btn.classList.add('animate-pulse');
-            } else {
-                btn.classList.replace('btn-dark', 'btn-grey');
-                btn.classList.remove('animate-pulse');
-            }
-        }
+    // RESET ACTIONS
+    window.resetLastRecord = () => {
+        if (logs.length === 0) return showToast("NO RECORDS TO RESET");
+        openModal("REMOVE LAST?", "The last recorded cycle will be deleted permanently.", () => {
+            logs.pop();
+            cycleCount = logs.length;
+            document.getElementById('cycle-count').innerText = cycleCount;
+            document.getElementById('last-cycle-display').innerText = cycleCount > 0 ? (logs[logs.length-1].Net_Cycle || "0.00") : "0.00";
+            saveLogsToLocal();
+            showToast("LAST RECORD REMOVED");
+        });
+    };
 
-        function undoLastCycle(silent = false) {
-            const hasHistory = cycleResults.length > 0;
-            const hasCurrentProgress = Object.keys(currentCycleData).length > 0 || isRunning;
+    window.resetAllRecordsInTimer = () => {
+        if (logs.length === 0) return showToast("NO DATA TO CLEAR");
+        openModal("CLEAR ALL DATA?", "This will delete all cycles logged in this session.", () => {
+            logs = [];
+            cycleCount = 0;
+            document.getElementById('cycle-count').innerText = "0";
+            document.getElementById('last-cycle-display').innerText = "0.00";
+            saveLogsToLocal();
+            showToast("ALL DATA CLEARED");
+        });
+    };
 
-            if (!hasHistory && !hasCurrentProgress) {
-                if (!silent) showAlert("Nothing to reset.");
-                return;
-            }
+    window.clearLocalStorage = () => {
+        openModal("WIPE STORAGE?", "This will erase all logs stored on this device. Export CSV first.", () => {
+            localStorage.removeItem(LOGS_STORAGE_KEY);
+            logs = [];
+            cycleCount = 0;
+            document.getElementById('cycle-count').innerText = "0";
+            document.getElementById('last-cycle-display').innerText = "0.00";
+            showToast("STORAGE WIPED");
+        });
+    };
 
-            const executeUndo = () => {
-                if (hasHistory) {
-                    cycleResults.pop();
-                    cycleCountDisplay.innerText = cycleResults.length;
-                    if (!silent) {
-                        toast.classList.remove('hidden');
-                        setTimeout(() => toast.classList.add('hidden'), 2000);
-                    }
-                }
+    // CSV GENERATION LOGIC
+    function generateCSVString() {
+        if (logs.length === 0) return null;
+        const manualHeaderOrder = ["Date", "Time", "Equipment", "Unit", "Staff", "Operation", "Category", "Net_Cycle", "Waiting", "Gross_Cycle"];
+        const allPossibleKeys = Array.from(new Set(logs.flatMap(l => Object.keys(l))));
+        const keys = manualHeaderOrder.concat(allPossibleKeys.filter(k => !manualHeaderOrder.includes(k)));
+        let csv = "\ufeff" + keys.map(k => `"${k}"`).join(",") + "\r\n"; 
+        logs.forEach(l => { 
+            csv += keys.map(k => `"${l[k] || '0.00'}"`).join(",") + "\r\n"; 
+        }); 
+        return csv;
+    }
 
-                currentCycleData = {};
-                accumulatedStepTime = 0;
-                cycleWaitTime = 0;
-                mainTimer.innerText = "0.00";
-                
-                steps.forEach((_, i) => {
-                    const b = document.getElementById(`step-btn-${i}`);
-                    if(b) b.className = 'step-btn step-btn-inactive shadow-md';
+    // SHARE LOGIC
+    window.openShareModal = () => {
+        if (logs.length === 0) return showToast("NO DATA TO SHARE");
+        document.getElementById('share-modal-overlay').style.display = 'flex';
+    };
+
+    window.closeShareModal = () => {
+        document.getElementById('share-modal-overlay').style.display = 'none';
+    };
+
+    window.handleShare = async (platform) => {
+        const csvContent = generateCSVString();
+        if (!csvContent) return;
+
+        const filename = `Cycle_Report_${new Date().getTime()}.csv`;
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const file = new File([blob], filename, { type: 'text/csv' });
+
+        // Native File Share (Mobile Support)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: 'Performance Report',
+                    text: 'Attached is the cycle timer performance excel sheet.'
                 });
-
-                stopTimer();
-                isPaused = false;
-                isWaiting = false;
-                document.getElementById('pauseBtn').classList.replace('btn-dark', 'btn-grey');
-                document.getElementById('pauseBtn').innerHTML = "Pause";
-                document.getElementById('waitBtn').classList.replace('btn-dark', 'btn-grey');
-                document.getElementById('waitBtn').innerHTML = "Waiting";
-            };
-
-            if (silent) {
-                executeUndo();
-            } else {
-                showConfirm("Delete last cycle and reset progress?", executeUndo);
-            }
-        }
-
-        function resetFull() {
-            if (cycleResults.length === 0 && !isRunning) {
-                showAlert("No data to erase.");
+                closeShareModal();
                 return;
+            } catch (err) {
+                console.warn("Share failed, falling back to link...", err);
             }
-            showConfirm("Are you sure you want to erase ALL study data? This cannot be undone.", () => {
-                cycleResults = [];
-                cycleCountDisplay.innerText = "0";
-                undoLastCycle(true);
-                showAlert("All data cleared.");
-            });
         }
 
-        function recordStep(idx) {
-            if (!isRunning) {
-                if (idx !== 0) return showAlert("Click Step 1 to start.");
-                startTimer();
-                activeStepIndex = 0;
-                updateStepVisuals();
-                stopCycleBtn.classList.remove('hidden');
-                return;
-            }
-            
-            if (isPaused || isWaiting) return;
-            if (currentCycleData[idx] !== undefined) return;
-            if (idx === activeStepIndex) return;
+        // Fallback for WhatsApp (Link only - WhatsApp Web/API doesn't support direct file attachment via URL)
+        const last = logs[logs.length - 1];
+        const textSummary = `*Cycle Report: ${last.Equipment} (${last.Unit})*%0A` +
+                            `Date: ${last.Date}%0A` +
+                            `Total Cycles: ${logs.length}%0A%0A` +
+                            `_Note: Excel file sharing requires mobile browser share support. Use "Download CSV" to save the file manually._`;
 
-            if (idx !== activeStepIndex + 1) return showAlert(`Follow the order: Step ${activeStepIndex + 2}`);
-
-            currentCycleData[activeStepIndex] = accumulatedStepTime / 1000;
-            accumulatedStepTime = 0;
-            mainTimer.innerText = "0.00";
-            activeStepIndex = idx;
-            updateStepVisuals();
+        if (platform === 'whatsapp') {
+            window.open(`https://wa.me/?text=${textSummary}`, '_blank');
+        } else {
+            const subject = encodeURIComponent(`Cycle Timer Excel Report: ${last.Equipment}`);
+            window.open(`mailto:?subject=${subject}&body=${textSummary.replace(/%0A/g, '\r\n').replace(/\*/g, '')}`, '_blank');
         }
+        closeShareModal();
+    };
 
-        function updateStepVisuals() {
-            steps.forEach((_, i) => {
-                const b = document.getElementById(`step-btn-${i}`);
-                b.className = 'step-btn shadow-md';
-                if (i === activeStepIndex) b.classList.add('step-btn-active');
-                else if (currentCycleData[i] !== undefined) b.classList.add('step-btn-recorded');
-                else b.classList.add('step-btn-inactive');
-            });
+    // CONNECTION MONITOR
+    window.addEventListener('online', updateConnStatus);
+    window.addEventListener('offline', updateConnStatus);
+    function updateConnStatus() {
+        const badge = document.getElementById('conn-status');
+        if (badge) {
+            if (navigator.onLine) { badge.innerText = "Online"; badge.className = "status-badge status-online"; } 
+            else { badge.innerText = "Offline Mode"; badge.className = "status-badge status-offline"; }
         }
+    }
 
-        function stopCycle() {
-            if (!isRunning) return;
+    window.showScreen = (id) => {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if (id.includes('ops') || id === 'mr-screen') { window.parentScreen = id; renderEquipmentGrid(id); }
+        document.getElementById('dateDisplay').innerText = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
 
-            // Direct record without confirmation pop-up
-            currentCycleData[activeStepIndex] = accumulatedStepTime / 1000;
+    function renderEquipmentGrid(screenId) {
+        const grid = document.getElementById(screenId === 'ct-ops-screen' ? 'ct-grid' : screenId === 'gct-ops-screen' ? 'gct-grid' : 'mr-grid');
+        if (!grid) return; grid.innerHTML = '';
+        const items = (screenId === 'ct-ops-screen' ? ['QC', 'RTG', 'TT', 'EH', 'RS', 'FLT', 'LASHER', 'DOWELMAN'] : screenId === 'gct-ops-screen' ? ['MHC_LOOSE', 'LASHER', 'BAGGED_CARGO', 'FLT', 'RTG', 'RS'] : ['M&R']);
+        items.forEach(name => {
+            const btn = document.createElement('button'); btn.className = 'btn-calc equip-item'; btn.innerText = name;
+            btn.onclick = () => initTimer(name); grid.appendChild(btn);
+        });
+    }
 
-            const netTotal = Object.values(currentCycleData).reduce((a, b) => a + b, 0);
-            const waitTotal = cycleWaitTime / 1000;
-            const now = new Date();
-            
-            cycleResults.push({
-                cycle: cycleResults.length + 1,
-                date: now.toLocaleDateString(),
-                time: now.toLocaleTimeString(),
-                stepResults: { ...currentCycleData },
-                netTotal: netTotal,
-                waitTime: waitTotal,
-                grossTotal: netTotal + waitTotal
-            });
-
-            finishAndShowSuccess();
+    window.initTimer = (equipment) => {
+        currentCrane = equipment; 
+        const inputDiv = document.getElementById('dynamic-inputs'); inputDiv.innerHTML = '';
+        document.getElementById('modeToggleContainer').classList.remove('hidden');
+        if (equipment === 'QC') {
+            inputDiv.innerHTML = `<div class="grid grid-cols-2 gap-3"><input type="text" id="staffId" placeholder="OP-ID" class="dark-input text-xs"><input type="text" id="unitNo" placeholder="CRANE#" class="dark-input text-xs text-center"></div><label class="setup-label">Measurement Type</label><select id="qcCategory" onchange="window.updateQCCategory(this.value)" class="dark-input text-xs w-full"><option value="Above Deck">Above Deck</option><option value="Below Deck">Below Deck</option><option value="Hatch cover">Hatch cover</option><option value="OOG (OHF)">OOG (OHF)</option><option value="OOG (Wire sling)">OOG (Wire sling)</option></select>`;
+            currentCategory = 'Above Deck';
+        } else {
+            inputDiv.innerHTML = `<input type="text" id="staffId" placeholder="OP-ID" class="dark-input text-xs"><input type="text" id="unitNo" placeholder="UNIT#" class="dark-input text-xs">`;
         }
+        resetCurrentTimerUI(); updateMode('LOADING'); window.showScreen('timer-screen');
+    };
 
-        function finishAndShowSuccess() {
-            stopTimer();
-            
-            const modal = document.getElementById('recordModal');
-            const content = document.getElementById('modalContent');
-            document.getElementById('successMsg').innerText = `CYCLE ${cycleResults.length} OK!`;
-            
-            modal.classList.remove('hidden');
-            setTimeout(() => content.classList.replace('scale-90', 'scale-100'), 10);
-            
-            currentCycleData = {};
-            cycleWaitTime = 0;
-            cycleCountDisplay.innerText = cycleResults.length;
-            mainTimer.innerText = "0.00";
-            
-            setTimeout(() => {
-                steps.forEach((_, i) => {
-                    const b = document.getElementById(`step-btn-${i}`);
-                    if(b) b.className = 'step-btn step-btn-inactive shadow-md';
-                });
-                content.classList.replace('scale-100', 'scale-90');
-                setTimeout(() => modal.classList.add('hidden'), 200);
-            }, 1200);
-        }
+    window.updateQCCategory = (val) => { currentCategory = val; renderSteps(); };
+    window.updateMode = (mode) => {
+        if (startTime) return;
+        currentMode = mode;
+        const l = document.getElementById('m-load'); const d = document.getElementById('m-dis');
+        if (mode === 'LOADING') { l.classList.add('mode-active'); l.classList.remove('opacity-30'); d.classList.remove('mode-active'); d.classList.add('opacity-30'); }
+        else { d.classList.add('mode-active'); d.classList.remove('opacity-30'); l.classList.remove('mode-active'); l.classList.add('opacity-30'); }
+        renderSteps();
+    };
 
-        function downloadReport() {
-            if (cycleResults.length === 0) return showAlert("No data collected.");
+    function renderSteps() {
+        const grid = document.getElementById('step-grid'); grid.innerHTML = '';
+        currentSteps = (currentCrane === 'QC' ? config.QC[currentCategory]?.[currentMode] : config[currentCrane]?.[currentMode] || config[currentCrane]) || config.DEFAULT;
+        currentSteps.forEach((text, i) => {
+            const btn = document.createElement('button'); btn.id = `s${i+1}`; btn.className = 'btn-calc btn-step step-available'; btn.innerText = text; btn.disabled = (i !== 0); btn.onclick = () => triggerStep(i + 1); grid.appendChild(btn);
+        });
+    }
 
-            let csvRows = [];
-            csvRows.push(`"Equipment ID","${config.eqId || 'N/A'}"`);
-            csvRows.push(`"Staff ID","${config.staffId || 'N/A'}"`);
-            csvRows.push(`"Process Title","${config.job || 'N/A'}"`);
-            csvRows.push("");
+    function triggerStep(num) {
+        const now = Date.now();
+        const stopBtnEl = document.getElementById('stop-cycle-btn');
+        if (num === 1 && !stopBtnEl.classList.contains('hidden')) finalizeCycleSilently(now);
+        if (num === 1) {
+            startTime = now; lastTime = now; totalWaitingDuration = 0;
+            currentCycleData = { Date: new Date().toLocaleDateString(), Time: new Date().toLocaleTimeString(), Equipment: currentCrane, Staff: document.getElementById('staffId')?.value || "N/A", Unit: document.getElementById('unitNo')?.value || "N/A", Category: currentCategory, Operation: currentMode };
+            clearInterval(activeInterval); activeInterval = setInterval(() => { document.getElementById('main-timer').innerText = ((Date.now() - startTime) / 1000).toFixed(2); }, 50);
+            stopBtnEl.classList.add('hidden');
+        } else { currentCycleData[`Step_${num - 1}`] = ((now - lastTime) / 1000).toFixed(2); }
+        document.querySelectorAll('.btn-step').forEach(b => { b.disabled = true; b.classList.remove('step-active'); b.classList.add('step-available'); });
+        const act = document.getElementById(`s${num}`); act.classList.replace('step-available', 'step-active'); act.disabled = false;
+        if (num === currentSteps.length) { stopBtnEl.classList.remove('hidden'); document.getElementById('s1').disabled = false; }
+        else { document.getElementById(`s${num + 1}`).disabled = false; }
+        lastTime = now;
+    }
 
-            let headers = ["Cycle #", "Date", "End Time"];
-            steps.forEach(s => headers.push(`"${s} (s)"`));
-            headers.push("Waiting Time (s)", "Net Total (s)", "Gross Total (s)");
-            csvRows.push(headers.join(","));
+    function finalizeCycleSilently(now) {
+        clearInterval(activeInterval);
+        const net = ((now - startTime) / 1000).toFixed(2);
+        const waiting = (totalWaitingDuration / 1000).toFixed(2);
+        currentCycleData[`Step_${currentSteps.length}`] = ((now - lastTime) / 1000).toFixed(2);
+        currentCycleData['Net_Cycle'] = net; currentCycleData['Waiting'] = waiting; currentCycleData['Gross_Cycle'] = (parseFloat(net) + parseFloat(waiting)).toFixed(2);
+        currentCycleData.Time = new Date().toLocaleTimeString();
+        document.getElementById('last-cycle-display').innerText = net;
+        logs.push({ ...currentCycleData }); cycleCount = logs.length;
+        document.getElementById('cycle-count').innerText = cycleCount;
+        saveLogsToLocal(); 
+    }
 
-            cycleResults.forEach(r => {
-                let row = [r.cycle, `"${r.date}"`, `"${r.time}"` ];
-                steps.forEach((_, i) => row.push((r.stepResults[i] || 0).toFixed(2)));
-                row.push(r.waitTime.toFixed(2), r.netTotal.toFixed(2), r.grossTotal.toFixed(2));
-                csvRows.push(row.join(","));
-            });
+    window.stopCycle = () => { 
+        finalizeCycleSilently(Date.now()); 
+        document.getElementById('recordModal').classList.remove('hidden'); 
+        setTimeout(() => { document.getElementById('recordModal').classList.add('hidden'); resetCurrentTimerUI(); }, 1000); 
+    };
 
-            const nets = cycleResults.map(r => r.netTotal);
-            const gross = cycleResults.map(r => r.grossTotal);
-            const wait = cycleResults.map(r => r.waitTime);
-            const avg = a => (a.reduce((x, y) => x + y, 0) / a.length).toFixed(2);
-            const med = a => {
-                const s = [...a].sort((x, y) => x - y);
-                const m = Math.floor(s.length / 2);
-                return s.length % 2 !== 0 ? s[m] : (s[m-1]+s[m])/2;
-            };
+    window.togglePause = () => { 
+        if (!startTime) return; 
+        const pBtn = document.getElementById('pause-btn'); 
+        if (!isPaused) { isPaused = true; delayStart = Date.now(); pBtn.style.opacity = '0.5'; clearInterval(activeInterval); } 
+        else { isPaused = false; let d = Date.now() - delayStart; startTime += d; lastTime += d; pBtn.style.opacity = '1'; activeInterval = setInterval(() => { document.getElementById('main-timer').innerText = ((Date.now() - startTime) / 1000).toFixed(2); }, 50); } 
+    };
 
-            csvRows.push("", "SUMMARY STATISTICS");
-            csvRows.push(`"Total Cycles Recorded","${cycleResults.length}"`);
-            csvRows.push(`"Avg Net Cycle Time (s)","${avg(nets)}"`);
-            csvRows.push(`"Avg Gross Cycle Time (s)","${avg(gross)}"`);
-            csvRows.push(`"Avg Waiting Time (s)","${avg(wait)}"`);
-            csvRows.push(`"Median Net Cycle Time (s)","${med(nets).toFixed(2)}"`);
+    window.toggleWaiting = () => { 
+        if (!startTime) return; 
+        const wBtn = document.getElementById('wait-btn'); 
+        if (!isWaiting) { isWaiting = true; delayStart = Date.now(); wBtn.style.opacity = '0.5'; clearInterval(activeInterval); } 
+        else { isWaiting = false; let d = Date.now() - delayStart; totalWaitingDuration += d; startTime += d; lastTime += d; wBtn.style.opacity = '1'; activeInterval = setInterval(() => { document.getElementById('main-timer').innerText = ((Date.now() - startTime) / 1000).toFixed(2); }, 50); } 
+    };
 
-            const blob = new Blob(["\ufeff" + csvRows.join("\n")], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `Golden_Timer_Report.csv`;
-            link.click();
-        }
-    </script>
+    function resetCurrentTimerUI() { 
+        clearInterval(activeInterval); startTime = null; isPaused = false; isWaiting = false; 
+        document.getElementById('main-timer').innerText = "0.00"; 
+        document.getElementById('stop-cycle-btn').classList.add('hidden'); 
+        document.getElementById('pause-btn').style.opacity = '1'; document.getElementById('wait-btn').style.opacity = '1'; 
+        renderSteps(); 
+    }
+
+    window.downloadReport = () => { 
+        const csv = generateCSVString();
+        if (!csv) return showToast("NO DATA LOGGED"); 
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" }); 
+        const link = document.createElement("a"); link.href = URL.createObjectURL(blob); 
+        link.download = `Cycle_Report_${new Date().getTime()}.csv`; link.click(); 
+        showToast("REPORT DOWNLOADED"); 
+    };
+
+    window.closeModal = () => { document.getElementById('custom-modal-overlay').style.display = 'none'; };
+    window.openModal = (title, msg, onConfirm) => { 
+        document.getElementById('modal-title').innerText = title; document.getElementById('modal-msg').innerText = msg; 
+        document.getElementById('custom-modal-overlay').style.display = 'flex'; 
+        document.getElementById('modal-confirm-btn').onclick = () => { onConfirm(); closeModal(); }; 
+    };
+
+    window.goHome = () => { 
+        if (startTime) { openModal("ABORT MEASUREMENT?", "Current timing data will be lost.", () => { resetCurrentTimerUI(); window.showScreen(window.parentScreen); }); } 
+        else { window.showScreen(window.parentScreen); } 
+    };
+
+    window.openQuickManual = () => {
+        document.getElementById('manualEquipId').value = ''; document.getElementById('manualStaffId').value = '';
+        document.getElementById('manualStepList').innerHTML = ''; window.showScreen('manual-setup-screen');
+    };
+
+    window.addManualStep = () => { 
+        let i = document.getElementById('manualStepInput'); 
+        if (i && i.value.trim()) { 
+            const list = document.getElementById('manualStepList');
+            const d = document.createElement('div'); d.className = 'flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/5';
+            d.innerHTML = `<span class="text-xs font-bold">${i.value}</span>`;
+            list.appendChild(d); i.value = '';
+        } 
+    };
+
+    window.openManualTimer = () => { showToast("Configuring..."); };
+
+    window.onload = function() { loadLogsFromLocal(); updateConnStatus(); window.showScreen('home-screen'); };
+
+    window.attemptLogin = () => {
+        if (document.getElementById('adminPin').value === '1234') {
+            document.getElementById('app-body').classList.add('logged-in');
+            document.getElementById('login-btn').classList.add('hidden'); document.getElementById('logout-btn').classList.remove('hidden');
+            showToast("ADMIN ACCESS"); window.showScreen('home-screen');
+        } else { showToast("INVALID PIN"); }
+        document.getElementById('adminPin').value = '';
+    };
+
+    window.logout = () => { location.reload(); };
+
+</script>
 </body>
 </html>
