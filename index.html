@@ -19,9 +19,8 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #1a1d21; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f444d; border-radius: 10px; }
 
-        /* Industrial LCD Display Style */
         .timer-container { 
-            background-color: #a3b18a; /* LCD Green */
+            background-color: #a3b18a; 
             border: 8px solid #2d333a;
             border-radius: 16px; 
             padding: 1.5rem 1rem; 
@@ -60,7 +59,6 @@
             margin-bottom: -5px;
         }
         
-        /* 3D Console Buttons */
         .btn-grey { 
             background-color: #fb8c00; 
             color: white; 
@@ -88,25 +86,14 @@
         }
         .btn-slate:active { transform: translateY(1px); box-shadow: 0 1px 0px #1a1d21; }
 
-        .btn-dark { 
-            background-color: #1a1d21; 
-            color: white; 
-            font-weight: 900; 
-            border-radius: 12px; 
-            border: 2px solid #ffffff; 
-        }
-        
         .btn-red { 
             background-color: #d32f2f; 
             color: white; 
             font-weight: 900; 
             border-radius: 14px; 
             box-shadow: 0 6px 0px #7f0000;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
         }
-        .btn-red:active { transform: translateY(4px); box-shadow: 0 2px 0px #7f0000; }
         
-        /* Rugged Step Buttons */
         .step-btn { 
             border-radius: 14px; 
             padding: 1rem 0.75rem; 
@@ -124,22 +111,14 @@
             color: #ffffff; 
         }
 
-        .step-btn-inactive { 
-            background-color: #1a1d21; 
-        }
-        
+        .step-btn-inactive { background-color: #1a1d21; }
         .step-btn-active { 
             background-color: #fb8c00; 
             border-color: #ffffff;
             box-shadow: 0 0 20px rgba(251, 140, 0, 0.4);
             animation: pulse-border 1s infinite alternate;
         }
-        
-        .step-btn-recorded { 
-            background-color: #2d333a; 
-            color: #4ade80; 
-            border-color: #4ade80;
-        }
+        .step-btn-recorded { background-color: #2d333a; color: #4ade80; border-color: #4ade80; }
 
         @keyframes pulse-border {
             from { border-color: #ffffff; }
@@ -147,20 +126,26 @@
         }
         
         .hidden { display: none; }
+        .bold-label { color: #000000 !important; font-weight: 900 !important; font-size: 11px; }
+        .setup-container { background-color: #f8fafc; color: #000000; }
 
-        .bold-label {
-            color: #000000 !important;
-            font-weight: 900 !important;
-            font-size: 11px;
-        }
-
-        .setup-container {
-            background-color: #f8fafc;
-            color: #000000;
+        #cloudStatus {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
         }
     </style>
 </head>
 <body class="min-h-screen p-3 md:p-6 flex flex-col items-center">
+
+    <div id="cloudStatus">Connecting...</div>
 
     <!-- PAGE 1: SETUP -->
     <div id="setupPage" class="w-full max-w-[500px] setup-container border border-slate-200 rounded-[2rem] p-6 md:p-8 shadow-2xl my-auto">
@@ -204,12 +189,16 @@
             <button onclick="goToTimerPage()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-lg hover:bg-black active:scale-[0.98] transition shadow-lg uppercase tracking-wider mt-2">
                 Done - Open Timer
             </button>
+
+            <div class="text-center pt-4 opacity-50">
+                <p class="text-[9px] font-black uppercase text-slate-500">Cloud Account ID:</p>
+                <p id="userIdDisplay" class="text-[9px] font-mono font-bold text-slate-800 tracking-tighter">authenticating...</p>
+            </div>
         </div>
     </div>
 
     <!-- PAGE 2: TIMER -->
     <div id="timerPage" class="w-full max-w-[500px] hidden space-y-4">
-        
         <div class="flex justify-between items-center mb-1">
             <button onclick="goHome()" class="flex items-center gap-1 text-slate-400 font-bold hover:text-white transition text-xs uppercase tracking-widest">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
@@ -230,45 +219,27 @@
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-            <button id="pauseBtn" onclick="togglePause()" class="btn-grey py-5 text-md uppercase tracking-widest">
-                Pause
-            </button>
-            <button id="waitBtn" onclick="toggleWaiting()" class="btn-blue py-5 text-md uppercase tracking-widest">
-                Waiting
-            </button>
+            <button id="pauseBtn" onclick="togglePause()" class="btn-grey py-5 text-md uppercase tracking-widest">Pause</button>
+            <button id="waitBtn" onclick="toggleWaiting()" class="btn-blue py-5 text-md uppercase tracking-widest">Waiting</button>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
-            <button onclick="undoLastCycle()" class="btn-slate py-4 text-[10px] uppercase font-black">
-                Reset Last
-            </button>
-            <button onclick="resetFull()" class="btn-slate py-4 text-[10px] uppercase font-black bg-slate-700">
-                Reset All
-            </button>
+            <button onclick="undoLastCycle()" class="btn-slate py-4 text-[10px] uppercase font-black">Reset Last</button>
+            <button onclick="resetFull()" class="btn-slate py-4 text-[10px] uppercase font-black bg-slate-700">Reset All</button>
         </div>
 
-        <div id="stepGrid" class="grid grid-cols-2 gap-3 pt-2">
-            <!-- Buttons generated dynamically -->
-        </div>
+        <div id="stepGrid" class="grid grid-cols-2 gap-3 pt-2"></div>
 
-        <button id="stopCycleBtn" onclick="stopCycle()" class="btn-red w-full py-6 text-2xl uppercase tracking-widest mt-4 shadow-xl active:scale-95 transition hidden">
-            STOP & RECORD
-        </button>
+        <button id="stopCycleBtn" onclick="stopCycle()" class="btn-red w-full py-6 text-2xl uppercase tracking-widest mt-4 shadow-xl active:scale-95 transition hidden">STOP & RECORD</button>
 
-        <!-- Download Button -->
-        <button onclick="downloadReport()" class="w-full py-6 bg-[#ffffff] text-[#121417] rounded-2xl text-xl font-black uppercase tracking-widest active:scale-95 transition mt-6 shadow-2xl border-4 border-slate-700">
-            Download CSV Report
-        </button>
+        <button onclick="downloadReport()" class="w-full py-6 bg-[#ffffff] text-[#121417] rounded-2xl text-xl font-black uppercase tracking-widest active:scale-95 transition mt-6 shadow-2xl border-4 border-slate-700">Download CSV Report</button>
 
-        <!-- Share Button -->
         <button onclick="shareReport()" class="w-full py-5 bg-[#039be5] text-white rounded-2xl text-lg font-black uppercase tracking-widest active:scale-95 transition mt-3 shadow-2xl border-4 border-[#01579b] flex items-center justify-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
             Share Report
         </button>
 
-        <div id="sessionStatus" class="text-center text-[10px] font-black text-slate-600 uppercase tracking-widest py-3 italic">
-            Ready - Click any step to begin
-        </div>
+        <div id="sessionStatus" class="text-center text-[10px] font-black text-slate-600 uppercase tracking-widest py-3 italic">Ready - Click any step to begin</div>
     </div>
 
     <!-- Success Modal -->
@@ -278,52 +249,149 @@
                 <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
             </div>
             <h2 class="text-2xl font-black text-slate-800 uppercase" id="successMsg">Cycle OK!</h2>
-            <p class="text-slate-500 font-bold uppercase text-xs mt-2 tracking-tighter">Data Written to Memory</p>
+            <p class="text-slate-500 font-bold uppercase text-xs mt-2 tracking-tighter">Data Synced to Cloud</p>
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global State
         let steps = []; 
         let cycleResults = []; 
         let currentCycleData = {}; 
-        let config = { eqId: '', staffId: '', job: '' };
-        
+        let config = { eqId: '', staffId: '', job: '', customFilters: [] };
+        let user = null;
         let isRunning = false; let isPaused = false; let isWaiting = false; let activeStepIndex = -1;
         let accumulatedStepTime = 0; let lastTimestamp = 0; let cycleWaitTime = 0; let timerInterval = null;
 
-        function addFilterRow() {
+        // Firebase Setup
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'golden-timer-default';
+
+        // Auth Initialization
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (e) {
+                console.error("Auth Error", e);
+                document.getElementById('cloudStatus').innerText = "OFFLINE";
+                document.getElementById('cloudStatus').className = "text-red-500";
+            }
+        };
+
+        onAuthStateChanged(auth, (u) => {
+            user = u;
+            if (user) {
+                document.getElementById('userIdDisplay').innerText = user.uid;
+                document.getElementById('cloudStatus').innerText = "ONLINE";
+                document.getElementById('cloudStatus').style.color = "#4ade80";
+                loadSavedConfig();
+                loadStudyData();
+            }
+        });
+
+        initAuth();
+
+        // Database Sync Functions
+        async function saveConfig() {
+            if (!user) return;
+            const data = {
+                eqId: document.getElementById('setupEqId').value,
+                staffId: document.getElementById('setupStaffId').value,
+                job: document.getElementById('setupJob').value,
+                steps: steps,
+                customFilters: Array.from(document.querySelectorAll('#customFiltersContainer > div')).map(row => ({
+                    name: row.querySelector('.filter-name').value,
+                    value: row.querySelector('.filter-value').value
+                })),
+                updatedAt: Date.now()
+            };
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config'), data);
+            } catch (e) { console.error("Save Config failed", e); }
+        }
+
+        async function loadSavedConfig() {
+            if (!user) return;
+            const snap = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config'));
+            if (snap.exists()) {
+                const data = snap.data();
+                document.getElementById('setupEqId').value = data.eqId || '';
+                document.getElementById('setupStaffId').value = data.staffId || '';
+                document.getElementById('setupJob').value = data.job || '';
+                steps = data.steps || [];
+                renderSetupSteps();
+                
+                const container = document.getElementById('customFiltersContainer');
+                container.innerHTML = '';
+                (data.customFilters || []).forEach(f => {
+                    addFilterRow(f.name, f.value);
+                });
+            }
+        }
+
+        async function syncCycles() {
+            if (!user) return;
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'study', 'current'), {
+                    results: cycleResults,
+                    updatedAt: Date.now()
+                });
+            } catch (e) { console.error("Sync Cycle failed", e); }
+        }
+
+        async function loadStudyData() {
+            if (!user) return;
+            const snap = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'study', 'current'));
+            if (snap.exists()) {
+                cycleResults = snap.data().results || [];
+                updateLCD();
+            }
+        }
+
+        // Exposed functions to Window for HTML attributes
+        window.addFilterRow = (name = '', value = '') => {
             const container = document.getElementById('customFiltersContainer');
-            const index = Date.now();
+            const index = Date.now() + Math.random();
             const row = document.createElement('div');
             row.id = `filter-row-${index}`;
             row.className = "flex gap-2 items-center";
             row.innerHTML = `
-                <input type="text" placeholder="Filter Name" class="flex-1 p-2 border border-slate-300 rounded-lg text-[10px] font-bold outline-none filter-name text-black">
-                <input type="text" placeholder="Value" class="flex-1 p-2 border border-slate-300 rounded-lg text-[10px] font-bold outline-none filter-value text-black">
-                <button onclick="this.parentElement.remove()" class="text-red-500 p-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
+                <input type="text" value="${name}" placeholder="Filter Name" class="flex-1 p-2 border border-slate-300 rounded-lg text-[10px] font-bold outline-none filter-name text-black">
+                <input type="text" value="${value}" placeholder="Value" class="flex-1 p-2 border border-slate-300 rounded-lg text-[10px] font-bold outline-none filter-value text-black">
+                <button onclick="this.parentElement.remove()" class="text-red-500 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             `;
             container.appendChild(row);
-        }
+        };
 
-        function addStepFromSetup() {
+        window.addStepFromSetup = () => {
             const input = document.getElementById('setupStepInput');
             if (!input.value.trim()) return;
             steps.push(input.value.trim());
             input.value = '';
             renderSetupSteps();
-        }
+        };
 
         function renderSetupSteps() {
             document.getElementById('setupStepsList').innerHTML = steps.map((name, idx) => `
                 <div class="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 text-xs font-black uppercase text-slate-800">
                     <span>#${idx + 1} ${name}</span>
-                    <button onclick="steps.splice(${idx}, 1); renderSetupSteps();" class="text-red-500">REMOVE</button>
+                    <button onclick="window.removeStep(${idx})" class="text-red-500">REMOVE</button>
                 </div>`).join('');
         }
+        window.removeStep = (idx) => { steps.splice(idx, 1); renderSetupSteps(); };
 
-        function goToTimerPage() {
+        window.goToTimerPage = async () => {
             config.eqId = document.getElementById('setupEqId').value;
             config.staffId = document.getElementById('setupStaffId').value;
             config.job = document.getElementById('setupJob').value;
@@ -336,15 +404,18 @@
             });
 
             if (steps.length === 0) return alert("Add steps first");
+            
+            await saveConfig(); // Save to cloud when proceeding
+
             document.getElementById('stepGrid').innerHTML = steps.map((name, idx) => `
-                <button id="step-btn-${idx}" onclick="recordStep(${idx})" class="step-btn step-btn-inactive shadow-md">${idx + 1}. ${name}</button>`).join('');
+                <button id="step-btn-${idx}" onclick="window.recordStep(${idx})" class="step-btn step-btn-inactive shadow-md">${idx + 1}. ${name}</button>`).join('');
             document.getElementById('currentDateDisplay').innerText = new Date().toLocaleDateString();
             document.getElementById('setupPage').classList.add('hidden');
             document.getElementById('timerPage').classList.remove('hidden');
             updateLCD();
-        }
+        };
 
-        function goHome() { stopTimer(); document.getElementById('timerPage').classList.add('hidden'); document.getElementById('setupPage').classList.remove('hidden'); }
+        window.goHome = () => { stopTimer(); document.getElementById('timerPage').classList.add('hidden'); document.getElementById('setupPage').classList.remove('hidden'); };
 
         function startTimer() { 
             if (timerInterval) clearInterval(timerInterval);
@@ -363,83 +434,67 @@
 
         function tick() {
             if (isPaused) return;
-            const now = Date.now(); 
-            const delta = now - lastTimestamp; 
-            lastTimestamp = now;
-            if (!isWaiting) accumulatedStepTime += delta; 
-            else cycleWaitTime += delta;
+            const now = Date.now(); const delta = now - lastTimestamp; lastTimestamp = now;
+            if (!isWaiting) accumulatedStepTime += delta; else cycleWaitTime += delta;
             document.getElementById('mainTimer').innerText = (accumulatedStepTime / 1000).toFixed(2);
         }
 
-        function togglePause() { 
+        window.togglePause = () => { 
             if (!isRunning) return;
             isPaused = !isPaused; 
             const btn = document.getElementById('pauseBtn');
             btn.innerText = isPaused ? "Resume" : "Pause";
             btn.style.backgroundColor = isPaused ? "#2d333a" : "#fb8c00";
-        }
+        };
 
-        function toggleWaiting() { 
+        window.toggleWaiting = () => { 
             if (!isRunning) return;
             isWaiting = !isWaiting; 
             const btn = document.getElementById('waitBtn');
             btn.style.backgroundColor = isWaiting ? "#2d333a" : "#039be5";
-        }
+        };
 
-        function recordStep(idx) {
+        window.recordStep = (idx) => {
             if (!isRunning) { 
-                startTimer(); 
-                activeStepIndex = idx; 
+                startTimer(); activeStepIndex = idx; 
                 document.getElementById('stopCycleBtn').classList.remove('hidden'); 
             } else {
                 if (isPaused || isWaiting) return;
-                
                 if (steps.length === 1 && idx === activeStepIndex) {
                     currentCycleData[activeStepIndex] = (currentCycleData[activeStepIndex] || 0) + (accumulatedStepTime / 1000);
                     autoSaveCycleAndContinue();
                     return;
                 }
-
                 if (steps.length > 1 && idx === 0 && activeStepIndex !== 0) {
                     currentCycleData[activeStepIndex] = (currentCycleData[activeStepIndex] || 0) + (accumulatedStepTime / 1000);
                     autoSaveCycleAndContinue();
                     return;
                 }
-
                 if (idx !== activeStepIndex) {
                     currentCycleData[activeStepIndex] = (currentCycleData[activeStepIndex] || 0) + (accumulatedStepTime / 1000);
-                    accumulatedStepTime = 0; 
-                    activeStepIndex = idx;
+                    accumulatedStepTime = 0; activeStepIndex = idx;
                 }
             }
             updateStepVisuals();
             document.getElementById('sessionStatus').innerText = "TIMING: " + steps[activeStepIndex];
-        }
+        };
 
-        function autoSaveCycleAndContinue() {
+        async function autoSaveCycleAndContinue() {
             const now = new Date();
             const cycleData = { 
                 cycle: cycleResults.length + 1, 
-                date: now.toLocaleDateString(), 
-                time: now.toLocaleTimeString(), 
+                date: now.toLocaleDateString(), time: now.toLocaleTimeString(), 
                 stepResults: {...currentCycleData}, 
                 netTotal: Object.values(currentCycleData).reduce((a,b)=>a+b,0), 
                 waitTime: cycleWaitTime/1000 
             };
             cycleResults.push(cycleData);
-            
-            accumulatedStepTime = 0;
-            cycleWaitTime = 0;
-            currentCycleData = {};
-            activeStepIndex = 0; 
-            
+            accumulatedStepTime = 0; cycleWaitTime = 0; currentCycleData = {}; activeStepIndex = 0; 
             updateLCD(cycleData.netTotal);
             updateStepVisuals();
-            
+            await syncCycles();
             document.getElementById('recordModal').classList.remove('hidden');
-            setTimeout(() => {
-                document.getElementById('recordModal').classList.add('hidden');
-            }, 600);
+            setTimeout(() => document.getElementById('recordModal').classList.add('hidden'), 600);
         }
 
         function updateStepVisuals() {
@@ -453,26 +508,24 @@
             });
         }
 
-        function stopCycle() {
+        window.stopCycle = async () => {
             if (!isRunning) return;
             currentCycleData[activeStepIndex] = (currentCycleData[activeStepIndex] || 0) + (accumulatedStepTime / 1000);
             const now = new Date();
             const cycleData = { 
                 cycle: cycleResults.length + 1, 
-                date: now.toLocaleDateString(), 
-                time: now.toLocaleTimeString(), 
+                date: now.toLocaleDateString(), time: now.toLocaleTimeString(), 
                 stepResults: {...currentCycleData}, 
                 netTotal: Object.values(currentCycleData).reduce((a,b)=>a+b,0), 
                 waitTime: cycleWaitTime/1000 
             };
             cycleResults.push(cycleData);
+            await syncCycles();
             finishCycle(cycleData.netTotal);
-        }
+        };
 
         function finishCycle(lastTime) {
-            stopTimer(); 
-            accumulatedStepTime = 0; 
-            cycleWaitTime = 0;
+            stopTimer(); accumulatedStepTime = 0; cycleWaitTime = 0;
             document.getElementById('mainTimer').innerText = "0.00";
             currentCycleData = {};
             updateLCD(lastTime);
@@ -483,7 +536,7 @@
                     const b = document.getElementById(`step-btn-${i}`);
                     if(b) b.className = 'step-btn step-btn-inactive shadow-md';
                 });
-                document.getElementById('sessionStatus').innerText = "Ready - Click any step to start cycle " + (cycleResults.length + 1);
+                document.getElementById('sessionStatus').innerText = "Ready - Next Cycle: " + (cycleResults.length + 1);
             }, 1000);
         }
 
@@ -498,18 +551,20 @@
             }
         }
 
-        function undoLastCycle() { 
+        window.undoLastCycle = async () => { 
             if(cycleResults.length > 0) {
                 if(confirm("Delete last recorded cycle?")) {
                     cycleResults.pop(); 
+                    await syncCycles();
                     updateLCD();
                 }
             } 
-        }
+        };
         
-        function resetFull() { 
+        window.resetFull = async () => { 
             if(confirm("ERASE ALL SYSTEM DATA AND START OVER?")) { 
                 cycleResults = []; 
+                await syncCycles();
                 updateLCD(); 
                 stopTimer();
                 accumulatedStepTime = 0;
@@ -519,40 +574,26 @@
                     if(b) b.className = 'step-btn step-btn-inactive shadow-md';
                 });
             } 
-        }
+        };
 
         function generateCSVContent() {
             let csv = `"Equipment","${config.eqId}"\n"Staff","${config.staffId}"\n"Process","${config.job}"\n`;
             if (config.customFilters) config.customFilters.forEach(f => csv += `"${f.name}","${f.value}"\n`);
-            
             csv += `\n"Cycle","Date","Time",${steps.map(s => `"${s}"`).join(",")},"Waiting (s)","Net Total (s)","Gross Total (s)"\n`;
-            
-            let totalNet = 0;
-            let totalWait = 0;
-            let totalGross = 0;
-
+            let totalNet = 0; let totalWait = 0; let totalGross = 0;
             cycleResults.forEach(r => {
                 let gross = r.netTotal + r.waitTime;
-                totalNet += r.netTotal;
-                totalWait += r.waitTime;
-                totalGross += gross;
-
+                totalNet += r.netTotal; totalWait += r.waitTime; totalGross += gross;
                 let row = `${r.cycle},${r.date},${r.time}`;
                 steps.forEach((_, i) => row += `,${(r.stepResults[i]||0).toFixed(2)}`);
                 csv += `${row},${r.waitTime.toFixed(2)},${r.netTotal.toFixed(2)},${gross.toFixed(2)}\n`;
             });
-
             const count = cycleResults.length;
-            csv += `\n"SUMMARY STATISTICS"\n`;
-            csv += `"Total Cycles","${count}"\n`;
-            csv += `"Avg Net Cycle Time (s)","${count > 0 ? (totalNet / count).toFixed(2) : "0.00"}"\n`;
-            csv += `"Avg Waiting Time (s)","${count > 0 ? (totalWait / count).toFixed(2) : "0.00"}"\n`;
-            csv += `"Avg Gross Cycle Time (s)","${count > 0 ? (totalGross / count).toFixed(2) : "0.00"}"\n`;
-
+            csv += `\n"SUMMARY STATISTICS"\n"Total Cycles","${count}"\n"Avg Net Cycle Time (s)","${count > 0 ? (totalNet / count).toFixed(2) : "0.00"}"\n"Avg Waiting Time (s)","${count > 0 ? (totalWait / count).toFixed(2) : "0.00"}"\n"Avg Gross Cycle Time (s)","${count > 0 ? (totalGross / count).toFixed(2) : "0.00"}"\n`;
             return csv;
         }
 
-        function downloadReport() {
+        window.downloadReport = () => {
             if (cycleResults.length === 0) return alert("NO DATA COLLECTED");
             const csv = generateCSVContent();
             const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
@@ -560,28 +601,19 @@
             link.href = URL.createObjectURL(blob);
             link.download = `GoldenTimer_Report_${new Date().toISOString().slice(0,10)}.csv`;
             link.click();
-        }
+        };
 
-        async function shareReport() {
+        window.shareReport = async () => {
             if (cycleResults.length === 0) return alert("NO DATA COLLECTED");
             const csv = generateCSVContent();
             const fileName = `GoldenTimer_Report_${new Date().toISOString().slice(0,10)}.csv`;
-
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([], 'a.csv')] })) {
                 try {
                     const file = new File(["\ufeff" + csv], fileName, { type: 'text/csv' });
-                    await navigator.share({
-                        title: 'Golden Timer Report',
-                        text: `Cycle Study Report for ${config.job || 'Process'}`,
-                        files: [file]
-                    });
-                } catch (err) {
-                    if (err.name !== 'AbortError') downloadReport();
-                }
-            } else {
-                downloadReport();
-            }
-        }
+                    await navigator.share({ title: 'Golden Timer Report', files: [file] });
+                } catch (err) { if (err.name !== 'AbortError') window.downloadReport(); }
+            } else { window.downloadReport(); }
+        };
     </script>
 </body>
 </html>
