@@ -140,6 +140,7 @@
             border-radius: 4px;
             background: rgba(0,0,0,0.5);
             z-index: 100;
+            color: #fb8c00; /* Default connecting color */
         }
 
         .model-card {
@@ -208,7 +209,7 @@
                 <label class="block text-[14px] bold-label uppercase mb-3">Add Steps <span class="text-blue-600 font-black">*</span></label>
                 <div class="flex flex-nowrap gap-2 mb-4 w-full">
                     <input type="text" id="setupStepInput" class="flex-1 min-w-0 p-3 bg-white border border-slate-300 rounded-xl outline-none text-black font-bold text-sm" placeholder="Step name...">
-                    <button onclick="window.addStepFromSetup()" class="shrink-0 bg-blue-600 text-white px-5 py-2 rounded-xl font-black text-sm active:scale-95 transition">Add</button>
+                    <button id="addStepBtn" onclick="window.addStepFromSetup()" class="shrink-0 bg-blue-600 text-white px-5 py-2 rounded-xl font-black text-sm active:scale-95 transition">Add</button>
                 </div>
                 <div id="setupStepsList" class="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar"></div>
             </div>
@@ -291,7 +292,9 @@
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, query, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global State
+        // --- GLOBAL UI FUNCTIONS (ATTACH TO WINDOW IMMEDIATELY) ---
+        // This ensures mobile buttons like "Add Step" work even while Firebase is connecting.
+
         let steps = []; 
         let cycleResults = []; 
         let currentCycleData = {}; 
@@ -300,44 +303,92 @@
         let isRunning = false; let isPaused = false; let isWaiting = false; let activeStepIndex = -1;
         let accumulatedStepTime = 0; let lastTimestamp = 0; let cycleWaitTime = 0; let timerInterval = null;
 
-        // Firebase Setup
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'golden-timer-default';
-
-        // Auth Initialization
-        const initAuth = async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (e) {
-                document.getElementById('cloudStatus').innerText = "OFFLINE";
-                document.getElementById('cloudStatus').className = "text-red-500";
-            }
+        window.addStepFromSetup = () => {
+            const input = document.getElementById('setupStepInput');
+            const val = input.value.trim();
+            if (!val) return;
+            steps.push(val);
+            input.value = '';
+            window.renderSetupSteps();
         };
 
-        onAuthStateChanged(auth, (u) => {
-            user = u;
-            if (user) {
-                document.getElementById('userIdDisplay').innerText = user.uid;
-                document.getElementById('cloudStatus').innerText = "ONLINE";
-                document.getElementById('cloudStatus').style.color = "#4ade80";
-                loadSavedConfig();
-                loadStudyData();
-                listenToModels();
-            }
-        });
+        window.renderSetupSteps = () => {
+            const list = document.getElementById('setupStepsList');
+            list.innerHTML = steps.map((name, idx) => `
+                <div class="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 text-xs font-black uppercase text-slate-800">
+                    <span>#${idx + 1} ${name}</span>
+                    <button onclick="window.removeStep(${idx})" class="text-red-500">REMOVE</button>
+                </div>`).join('');
+        };
 
-        initAuth();
+        window.removeStep = (idx) => {
+            steps.splice(idx, 1);
+            window.renderSetupSteps();
+        };
 
-        // Database Sync Functions
+        window.addFilterRow = (name = '', value = '') => {
+            const container = document.getElementById('customFiltersContainer');
+            const index = Date.now() + Math.random();
+            const row = document.createElement('div');
+            row.id = `filter-row-${index}`;
+            row.className = "flex gap-2 items-center";
+            row.innerHTML = `
+                <input type="text" value="${name}" placeholder="Filter Name" class="flex-1 p-2 border border-slate-300 rounded-lg text-[10px] font-bold outline-none filter-name text-black">
+                <input type="text" value="${value}" placeholder="Value" class="flex-1 p-2 border border-slate-300 rounded-lg text-[10px] font-bold outline-none filter-value text-black">
+                <button onclick="this.parentElement.remove()" class="text-red-500 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            `;
+            container.appendChild(row);
+        };
+
+        // --- FIREBASE INITIALIZATION ---
+
+        let db, auth;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'golden-timer-default';
+
+        try {
+            const firebaseConfig = JSON.parse(__firebase_config);
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            // Auth Logic
+            const initAuth = async () => {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (e) {
+                    console.error("Auth Failed", e);
+                    document.getElementById('cloudStatus').innerText = "OFFLINE";
+                    document.getElementById('cloudStatus').style.color = "#ef4444";
+                }
+            };
+
+            onAuthStateChanged(auth, (u) => {
+                user = u;
+                if (user) {
+                    document.getElementById('userIdDisplay').innerText = user.uid;
+                    document.getElementById('cloudStatus').innerText = "ONLINE";
+                    document.getElementById('cloudStatus').style.color = "#4ade80";
+                    loadSavedConfig();
+                    loadStudyData();
+                    listenToModels();
+                }
+            });
+
+            initAuth();
+        } catch (err) {
+            console.error("Firebase Setup Error", err);
+            document.getElementById('cloudStatus').innerText = "OFFLINE";
+            document.getElementById('cloudStatus').style.color = "#ef4444";
+        }
+
+        // --- DATABASE SYNC LOGIC ---
+
         async function saveConfig() {
-            if (!user) return;
+            if (!user || !db) return;
             const data = {
                 eqId: document.getElementById('setupEqId').value,
                 staffId: document.getElementById('setupStaffId').value,
@@ -355,15 +406,15 @@
         }
 
         async function loadSavedConfig() {
-            if (!user) return;
-            const snap = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config'));
-            if (snap.exists()) {
-                applyModelData(snap.data());
-            }
+            if (!user || !db) return;
+            try {
+                const snap = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config'));
+                if (snap.exists()) applyModelData(snap.data());
+            } catch (e) {}
         }
 
         function listenToModels() {
-            if (!user) return;
+            if (!user || !db) return;
             const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'models'));
             onSnapshot(q, (snapshot) => {
                 const models = [];
@@ -388,36 +439,38 @@
                     </button>
                 </div>
             `).join('');
-            
-            // Re-assign global pointers
-            window.loadModel = async (id) => {
-                const snap = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'models', id));
-                if (snap.exists()) {
-                    applyModelData(snap.data());
-                    showSuccessModal("Process Loaded", "Model applied to setup");
-                }
-            };
-            window.deleteModel = async (id) => {
-                if(confirm("Delete this saved process model?")) {
-                    await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'models', id));
-                }
-            };
         }
+
+        window.loadModel = async (id) => {
+            if (!user || !db) return;
+            const snap = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'models', id));
+            if (snap.exists()) {
+                applyModelData(snap.data());
+                showSuccessModal("Process Loaded", "Model applied to setup");
+            }
+        };
+
+        window.deleteModel = async (id) => {
+            if (!user || !db) return;
+            if(confirm("Delete this saved process model?")) {
+                await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'models', id));
+            }
+        };
 
         function applyModelData(data) {
             document.getElementById('setupEqId').value = data.eqId || '';
             document.getElementById('setupStaffId').value = data.staffId || '';
             document.getElementById('setupJob').value = data.job || '';
             steps = data.steps || [];
-            renderSetupSteps();
+            window.renderSetupSteps();
             const container = document.getElementById('customFiltersContainer');
             container.innerHTML = '';
             (data.customFilters || []).forEach(f => window.addFilterRow(f.name, f.value));
         }
 
         window.saveCurrentProcessModel = async () => {
-            if (!user) return alert("Sign-in required to save models");
-            const jobTitle = config.job || document.getElementById('setupJob').value || "Untitled Process";
+            if (!user || !db) return alert("Sign-in required to save models");
+            const jobTitle = document.getElementById('setupJob').value || config.job || "Untitled Process";
             const data = {
                 eqId: config.eqId,
                 staffId: config.staffId,
@@ -436,54 +489,27 @@
         };
 
         async function syncCycles() {
-            if (!user) return;
+            if (!user || !db) return;
             try {
                 await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'study', 'current'), {
                     results: cycleResults,
                     updatedAt: Date.now()
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) {}
         }
 
         async function loadStudyData() {
-            if (!user) return;
-            const snap = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'study', 'current'));
-            if (snap.exists()) {
-                cycleResults = snap.data().results || [];
-                updateLCD();
-            }
+            if (!user || !db) return;
+            try {
+                const snap = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'study', 'current'));
+                if (snap.exists()) {
+                    cycleResults = snap.data().results || [];
+                    updateLCD();
+                }
+            } catch (e) {}
         }
 
-        window.addFilterRow = (name = '', value = '') => {
-            const container = document.getElementById('customFiltersContainer');
-            const index = Date.now() + Math.random();
-            const row = document.createElement('div');
-            row.id = `filter-row-${index}`;
-            row.className = "flex gap-2 items-center";
-            row.innerHTML = `
-                <input type="text" value="${name}" placeholder="Filter Name" class="flex-1 p-2 border border-slate-300 rounded-lg text-[10px] font-bold outline-none filter-name text-black">
-                <input type="text" value="${value}" placeholder="Value" class="flex-1 p-2 border border-slate-300 rounded-lg text-[10px] font-bold outline-none filter-value text-black">
-                <button onclick="this.parentElement.remove()" class="text-red-500 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-            `;
-            container.appendChild(row);
-        };
-
-        window.addStepFromSetup = () => {
-            const input = document.getElementById('setupStepInput');
-            if (!input.value.trim()) return;
-            steps.push(input.value.trim());
-            input.value = '';
-            renderSetupSteps();
-        };
-
-        function renderSetupSteps() {
-            document.getElementById('setupStepsList').innerHTML = steps.map((name, idx) => `
-                <div class="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 text-xs font-black uppercase text-slate-800">
-                    <span>#${idx + 1} ${name}</span>
-                    <button onclick="window.removeStep(${idx})" class="text-red-500">REMOVE</button>
-                </div>`).join('');
-        }
-        window.removeStep = (idx) => { steps.splice(idx, 1); renderSetupSteps(); };
+        // --- TIMER CORE LOGIC ---
 
         window.goToTimerPage = async () => {
             config.eqId = document.getElementById('setupEqId').value;
@@ -499,7 +525,7 @@
 
             if (steps.length === 0) return alert("Add steps first");
             
-            await saveConfig(); 
+            saveConfig(); // Async cloud save
 
             document.getElementById('stepGrid').innerHTML = steps.map((name, idx) => `
                 <button id="step-btn-${idx}" onclick="window.recordStep(${idx})" class="step-btn step-btn-inactive shadow-md">${idx + 1}. ${name}</button>`).join('');
@@ -509,7 +535,11 @@
             updateLCD();
         };
 
-        window.goHome = () => { stopTimer(); document.getElementById('timerPage').classList.add('hidden'); document.getElementById('setupPage').classList.remove('hidden'); };
+        window.goHome = () => { 
+            stopTimer(); 
+            document.getElementById('timerPage').classList.add('hidden'); 
+            document.getElementById('setupPage').classList.remove('hidden'); 
+        };
 
         function startTimer() { 
             if (timerInterval) clearInterval(timerInterval);
@@ -554,6 +584,7 @@
                 document.getElementById('stopCycleBtn').classList.remove('hidden'); 
             } else {
                 if (isPaused || isWaiting) return;
+                
                 if (steps.length === 1 && idx === activeStepIndex) {
                     currentCycleData[activeStepIndex] = (currentCycleData[activeStepIndex] || 0) + (accumulatedStepTime / 1000);
                     autoSaveCycleAndContinue();
@@ -586,7 +617,7 @@
             accumulatedStepTime = 0; cycleWaitTime = 0; currentCycleData = {}; activeStepIndex = 0; 
             updateLCD(cycleData.netTotal);
             updateStepVisuals();
-            await syncCycles();
+            syncCycles();
             showSuccessModal("Cycle OK!", "Data Synced to Cloud");
         }
 
@@ -613,7 +644,7 @@
                 waitTime: cycleWaitTime/1000 
             };
             cycleResults.push(cycleData);
-            await syncCycles();
+            syncCycles();
             finishCycle(cycleData.netTotal);
         };
 
@@ -655,7 +686,7 @@
             if(cycleResults.length > 0) {
                 if(confirm("Delete last recorded cycle?")) {
                     cycleResults.pop(); 
-                    await syncCycles();
+                    syncCycles();
                     updateLCD();
                 }
             } 
@@ -664,7 +695,7 @@
         window.resetFull = async () => { 
             if(confirm("ERASE ALL SYSTEM DATA AND START OVER?")) { 
                 cycleResults = []; 
-                await syncCycles();
+                syncCycles();
                 updateLCD(); 
                 stopTimer();
                 accumulatedStepTime = 0;
