@@ -182,6 +182,25 @@
             max-width: 400px;
             text-align: center;
         }
+
+        /* Dropdown Styling */
+        .industrial-select {
+            background-color: #1a1d21;
+            color: #ffffff;
+            border: 2px solid #3f444d;
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            outline: none;
+            width: 100%;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 16px;
+        }
     </style>
 </head>
 <body class="min-h-screen p-3 md:p-6 flex flex-col items-center">
@@ -242,10 +261,11 @@
 
             <div class="pt-6 border-t border-slate-200">
                 <div class="flex justify-between items-center mb-3">
-                    <label class="text-[14px] bold-label uppercase">Add Filters</label>
+                    <label class="text-[14px] bold-label uppercase text-slate-800">Add Filters (Dropdowns)</label>
                     <button onclick="window.addFilterRow()" class="text-[10px] bg-blue-600 text-white px-3 py-1.5 rounded-lg font-black uppercase active:scale-95 transition">New Filter +</button>
                 </div>
                 <div id="customFiltersContainer" class="space-y-2"></div>
+                <p class="text-[9px] text-slate-400 font-bold uppercase mt-1 italic">Enter options separated by commas (e.g. Wheat, Gypsum, Corn)</p>
             </div>
 
             <div class="pt-6 border-t border-slate-200">
@@ -284,6 +304,9 @@
             </div>
         </div>
 
+        <!-- DYNAMIC DROPDOWNS ON TIMER PAGE -->
+        <div id="timerDropdownsContainer" class="grid grid-cols-1 gap-2"></div>
+
         <div class="grid grid-cols-2 gap-4">
             <button id="pauseBtn" onclick="window.togglePause()" class="btn-grey py-5 text-md uppercase tracking-widest">Pause</button>
             <button id="waitBtn" onclick="window.toggleWaiting()" class="btn-blue py-5 text-md uppercase tracking-widest">Waiting</button>
@@ -321,7 +344,7 @@
                 <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
             </div>
             <h2 class="text-2xl font-black text-slate-800 uppercase" id="successMsg">Success!</h2>
-            <p id="modalSubText" class="text-slate-500 font-bold uppercase text-xs mt-2 tracking-tighter">Syncing to your Cloud Account</p>
+            <p id="modalSubText" class="text-slate-500 font-bold uppercase text-xs mt-2 tracking-tighter">Action Synced to Cloud</p>
         </div>
     </div>
 
@@ -396,8 +419,7 @@
             document.getElementById('activeEmail').innerText = email;
             document.getElementById('cloudBtn').innerText = "Sync Active";
             
-            // Load saved settings for this specific email
-            const emailKey = btoa(email); // Simple encoding for valid path
+            const emailKey = btoa(email); 
             const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cloud_users', emailKey));
             
             if (snap.exists()) {
@@ -464,7 +486,7 @@
             window.renderSetupSteps();
             const container = document.getElementById('customFiltersContainer');
             container.innerHTML = '';
-            (data.customFilters || []).forEach(f => window.addFilterRow(f.name, f.value));
+            (data.customFilters || []).forEach(f => window.addFilterRow(f.name, f.options ? f.options.join(', ') : ''));
         }
 
         window.saveCurrentProcessModel = async () => {
@@ -472,10 +494,13 @@
                 window.openCloudModal();
                 return;
             }
-            const jobTitle = document.getElementById('setupJob').value || config.job || "Untitled Process";
+            // Sync current state to config object before saving
+            captureConfig();
+            
+            const jobTitle = config.job || "Untitled Process";
             const data = {
-                eqId: document.getElementById('setupEqId').value,
-                staffId: document.getElementById('setupStaffId').value,
+                eqId: config.eqId,
+                staffId: config.staffId,
                 job: jobTitle,
                 steps: steps,
                 customFilters: config.customFilters,
@@ -490,16 +515,31 @@
             }
         };
 
+        function captureConfig() {
+            config.eqId = document.getElementById('setupEqId').value;
+            config.staffId = document.getElementById('setupStaffId').value;
+            config.job = document.getElementById('setupJob').value;
+            
+            const names = document.querySelectorAll('.filter-name');
+            const values = document.querySelectorAll('.filter-value');
+            config.customFilters = [];
+            names.forEach((n, i) => {
+                const nameStr = n.value.trim();
+                const optionsStr = values[i].value.trim();
+                if(nameStr) {
+                    config.customFilters.push({ 
+                        name: nameStr, 
+                        options: optionsStr.split(',').map(s => s.trim()).filter(s => s.length > 0) 
+                    });
+                }
+            });
+        }
+
         async function syncData() {
             if (!cloudEmail || !db) return;
+            captureConfig();
             const data = {
-                config: {
-                    eqId: document.getElementById('setupEqId').value,
-                    staffId: document.getElementById('setupStaffId').value,
-                    job: document.getElementById('setupJob').value,
-                    steps: steps,
-                    customFilters: config.customFilters
-                },
+                config: config,
                 cycles: cycleResults,
                 updatedAt: Date.now()
             };
@@ -534,27 +574,33 @@
             const row = document.createElement('div');
             row.className = "flex gap-2 items-center";
             row.innerHTML = `
-                <input type="text" value="${name}" placeholder="Filter Name" class="flex-1 p-2 border border-slate-300 rounded-lg text-[10px] font-bold outline-none filter-name text-black">
-                <input type="text" value="${value}" placeholder="Value" class="flex-1 p-2 border border-slate-300 rounded-lg text-[10px] font-bold outline-none filter-value text-black">
+                <input type="text" value="${name}" placeholder="Filter Name (e.g. Cargo)" class="flex-1 p-2 border border-slate-300 rounded-lg text-[10px] font-bold outline-none filter-name text-black">
+                <input type="text" value="${value}" placeholder="Options (Gypsum, Wheat...)" class="flex-1 p-2 border border-slate-300 rounded-lg text-[10px] font-bold outline-none filter-value text-black">
                 <button onclick="this.parentElement.remove()" class="text-red-500 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             `;
             container.appendChild(row);
         };
 
         window.goToTimerPage = async () => {
-            config.eqId = document.getElementById('setupEqId').value;
-            config.staffId = document.getElementById('setupStaffId').value;
-            config.job = document.getElementById('setupJob').value;
-            
-            const names = document.querySelectorAll('.filter-name');
-            const values = document.querySelectorAll('.filter-value');
-            config.customFilters = [];
-            names.forEach((n, i) => {
-                if(n.value.trim()) config.customFilters.push({ name: n.value.trim(), value: values[i].value.trim() });
-            });
+            captureConfig();
 
             if (steps.length === 0) return alert("Add steps first");
             
+            // Build the dynamic dropdowns for the timer page
+            const timerDropdownsContainer = document.getElementById('timerDropdownsContainer');
+            timerDropdownsContainer.innerHTML = '';
+            config.customFilters.forEach((f, i) => {
+                const div = document.createElement('div');
+                div.className = "space-y-1";
+                div.innerHTML = `
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">${f.name}</label>
+                    <select id="timer-filter-${i}" class="industrial-select">
+                        ${f.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                    </select>
+                `;
+                timerDropdownsContainer.appendChild(div);
+            });
+
             await syncData(); 
 
             document.getElementById('stepGrid').innerHTML = steps.map((name, idx) => `
@@ -614,6 +660,7 @@
                 document.getElementById('stopCycleBtn').classList.remove('hidden'); 
             } else {
                 if (isPaused || isWaiting) return;
+                
                 if (steps.length === 1 && idx === activeStepIndex) {
                     currentCycleData[activeStepIndex] = (currentCycleData[activeStepIndex] || 0) + (accumulatedStepTime / 1000);
                     autoSaveCycleAndContinue();
@@ -635,19 +682,29 @@
 
         async function autoSaveCycleAndContinue() {
             const now = new Date();
+            
+            // Capture current values from the dropdowns
+            const selectedFilters = {};
+            config.customFilters.forEach((f, i) => {
+                selectedFilters[f.name] = document.getElementById(`timer-filter-${i}`).value;
+            });
+
             const cycleData = { 
                 cycle: cycleResults.length + 1, 
-                date: now.toLocaleDateString(), time: now.toLocaleTimeString(), 
+                date: now.toLocaleDateString(), 
+                time: now.toLocaleTimeString(), 
                 stepResults: {...currentCycleData}, 
+                filterSelections: selectedFilters,
                 netTotal: Object.values(currentCycleData).reduce((a,b)=>a+b,0), 
                 waitTime: cycleWaitTime/1000 
             };
             cycleResults.push(cycleData);
+            
             accumulatedStepTime = 0; cycleWaitTime = 0; currentCycleData = {}; activeStepIndex = 0; 
             updateLCD(cycleData.netTotal);
             updateStepVisuals();
-            syncData(); // Auto sync each cycle
-            window.showSuccessModal("Cycle OK!", "Auto-saved to " + (cloudEmail || "local cache"));
+            syncData(); 
+            window.showSuccessModal("Cycle OK!", "Auto-saved with selections");
         }
 
         function updateStepVisuals() {
@@ -664,11 +721,18 @@
         window.stopCycle = async () => {
             if (!isRunning) return;
             currentCycleData[activeStepIndex] = (currentCycleData[activeStepIndex] || 0) + (accumulatedStepTime / 1000);
+            
+            const selectedFilters = {};
+            config.customFilters.forEach((f, i) => {
+                selectedFilters[f.name] = document.getElementById(`timer-filter-${i}`).value;
+            });
+
             const now = new Date();
             const cycleData = { 
                 cycle: cycleResults.length + 1, 
                 date: now.toLocaleDateString(), time: now.toLocaleTimeString(), 
                 stepResults: {...currentCycleData}, 
+                filterSelections: selectedFilters,
                 netTotal: Object.values(currentCycleData).reduce((a,b)=>a+b,0), 
                 waitTime: cycleWaitTime/1000 
             };
@@ -737,15 +801,25 @@
         };
 
         function generateCSVContent() {
-            let csv = `"Equipment","${config.eqId}"\n"Staff","${config.staffId}"\n"Process","${config.job}"\n`;
-            if (config.customFilters) config.customFilters.forEach(f => csv += `"${f.name}","${f.value}"\n`);
-            csv += `\n"Cycle","Date","Time",${steps.map(s => `"${s}"`).join(",")},"Waiting (s)","Net Total (s)","Gross Total (s)"\n`;
+            let csv = `"Equipment","${config.eqId}"\n"Staff","${config.staffId}"\n"Process","${config.job}"\n"Account","${cloudEmail || 'Local'}"\n`;
+            
+            // Build headers dynamically based on filters
+            const filterHeaders = config.customFilters.map(f => `"${f.name}"`).join(",");
+            csv += `\n"Cycle","Date","Time",${steps.map(s => `"${s}"`).join(",")},${filterHeaders ? filterHeaders + ',' : ''}"Waiting (s)","Net Total (s)","Gross Total (s)"\n`;
+            
             let totalNet = 0; let totalWait = 0; let totalGross = 0;
             cycleResults.forEach(r => {
                 let gross = r.netTotal + r.waitTime;
                 totalNet += r.netTotal; totalWait += r.waitTime; totalGross += gross;
+                
                 let row = `${r.cycle},${r.date},${r.time}`;
                 steps.forEach((_, i) => row += `,${(r.stepResults[i]||0).toFixed(2)}`);
+                
+                // Add the selection for this specific cycle
+                config.customFilters.forEach(f => {
+                    row += `,"${r.filterSelections ? r.filterSelections[f.name] || '' : ''}"`;
+                });
+
                 csv += `${row},${r.waitTime.toFixed(2)},${r.netTotal.toFixed(2)},${gross.toFixed(2)}\n`;
             });
             const count = cycleResults.length;
